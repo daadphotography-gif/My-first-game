@@ -29,10 +29,6 @@ export default function App() {
     const saved = localStorage.getItem('setupComplete');
     return saved ? JSON.parse(saved) : false;
   });
-  const [isPresenter, setIsPresenter] = useState(() => {
-    const saved = localStorage.getItem('isPresenter');
-    return saved ? JSON.parse(saved) : false;
-  });
   const [teamNames, setTeamNames] = useState(() => {
     const saved = localStorage.getItem('teamNames');
     return saved ? JSON.parse(saved) : { X: 'فريق X', O: 'فريق O' };
@@ -52,7 +48,9 @@ export default function App() {
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [showQuestion, setShowQuestion] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [wrongFeedback, setWrongFeedback] = useState(false);
+  const [correctAnswerIndex, setCorrectAnswerIndex] = useState<number | null>(null);
+  const [showStage3Answer, setShowStage3Answer] = useState(false);
   const [usedQuestions, setUsedQuestions] = useState<number[]>(() => {
     const saved = localStorage.getItem('usedQuestions');
     return saved ? JSON.parse(saved) : [];
@@ -193,7 +191,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('gameStarted', JSON.stringify(gameStarted));
     localStorage.setItem('setupComplete', JSON.stringify(setupComplete));
-    localStorage.setItem('isPresenter', JSON.stringify(isPresenter));
     localStorage.setItem('teamNames', JSON.stringify(teamNames));
     localStorage.setItem('board', JSON.stringify(board));
     localStorage.setItem('currentPlayer', currentPlayer);
@@ -208,11 +205,11 @@ export default function App() {
     localStorage.setItem('introComplete', JSON.stringify(introComplete));
     localStorage.setItem('stage2IntroActive', JSON.stringify(stage2IntroActive));
     localStorage.setItem('stage3IntroActive', JSON.stringify(stage3IntroActive));
-  }, [gameStarted, setupComplete, introComplete, isPresenter, teamNames, board, currentPlayer, winner, usedQuestions, phase, round, roundWins, stage2Score, stage2QuestionOrder, stage3Positions, stage2IntroActive, stage3IntroActive]);
+  }, [gameStarted, setupComplete, introComplete, teamNames, board, currentPlayer, winner, usedQuestions, phase, round, roundWins, stage2Score, stage2QuestionOrder, stage3Positions, stage2IntroActive, stage3IntroActive]);
 
-  // Shuffle stage 2 questions when presenter enters phase 2
+  // Shuffle stage 2 questions when entering phase 2
   useEffect(() => {
-    if (phase === 2 && isPresenter) {
+    if (phase === 2) {
       setStage2QuestionOrder(prev => {
         const shuffled = [...prev].sort(() => Math.random() - 0.5);
         return shuffled;
@@ -220,7 +217,7 @@ export default function App() {
       // Initial sound for stage 2
       triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
     }
-  }, [phase, isPresenter]);
+  }, [phase]);
 
 
   const audioRef = useRef<HTMLVideoElement | null>(null);
@@ -245,29 +242,30 @@ export default function App() {
       // Auto-fail on timeout
       setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
       setShowStage3Question(false);
-      setShowError(true);
+      setWrongFeedback(true);
       setTimeout(() => {
-        setShowError(false);
+        setWrongFeedback(false);
         setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-      }, 2000);
+      }, 2500);
     }
     return () => clearInterval(interval);
   }, [isTimerActive, stage3Timer, currentPlayer, isZoomTransitionPaused]);
 
-  // Reset timer when question opens/closes
-  useEffect(() => {
-    if (showStage3Question) {
-      setStage3Timer(40);
-      // Delay starting the timer for 1.5 seconds to give players time to see the content
-      const startDelay = setTimeout(() => {
-        setIsTimerActive(true);
-      }, 1500);
-      return () => clearTimeout(startDelay);
-    } else {
-      setIsTimerActive(false);
-      setIsZoomTransitionPaused(false);
-    }
-  }, [showStage3Question]);
+    // Reset timer when question opens/closes
+    useEffect(() => {
+      if (showStage3Question) {
+        setStage3Timer(40);
+        setShowStage3Answer(false);
+        // Delay starting the timer for 1.5 seconds to give players time to see the content
+        const startDelay = setTimeout(() => {
+          setIsTimerActive(true);
+        }, 1500);
+        return () => clearTimeout(startDelay);
+      } else {
+        setIsTimerActive(false);
+        setIsZoomTransitionPaused(false);
+      }
+    }, [showStage3Question]);
 
   // Pause timer briefly when zooming to give time for transition without losing countdown
   useEffect(() => {
@@ -326,92 +324,82 @@ export default function App() {
   useEffect(() => {
     const channel = new BroadcastChannel('game_sync');
     
-    if (isPresenter) {
-      const broadcastState = () => {
-        channel.postMessage({
-          type: 'STATE_UPDATE',
-          payload: {
-            board,
-            currentPlayer,
-            winner,
-            selectedCell,
-            currentQuestion,
-            showQuestion,
-            showError,
-            teamNames,
-            gameStarted,
-            setupComplete,
-            introComplete,
-            usedQuestions,
-            phase,
-            round,
-            roundWins,
-            stage2Score,
-            stage2Index,
-            stage2QuestionOrder,
-            stage2ShowOptions,
-            stage2Feedback,
-            stage3Positions,
-            stage2IntroActive,
-            stage3IntroActive
-          }
-        });
-      };
+    const broadcastState = () => {
+      channel.postMessage({
+        type: 'STATE_UPDATE',
+        payload: {
+          board,
+          currentPlayer,
+          winner,
+          selectedCell,
+          currentQuestion,
+          showQuestion,
+          wrongFeedback,
+          teamNames,
+          gameStarted,
+          setupComplete,
+          introComplete,
+          usedQuestions,
+          phase,
+          round,
+          roundWins,
+          stage2Score,
+          stage2Index,
+          stage2QuestionOrder,
+          stage2ShowOptions,
+          stage2Feedback,
+          stage3Positions,
+          stage2IntroActive,
+          stage3IntroActive
+        }
+      });
+    };
 
-      broadcastState();
+    broadcastState();
 
-      channel.onmessage = (event) => {
-        if (event.data.type === 'REQUEST_STATE') {
-          broadcastState();
-        }
-        if (event.data.type === 'PLAY_AUDIO') {
-          handlePlayAudio(event.data.url);
-        }
-      };
-    } else {
-      channel.postMessage({ type: 'REQUEST_STATE' });
-      
-      channel.onmessage = (event) => {
-        if (event.data.type === 'STATE_UPDATE') {
-          const state = event.data.payload;
-          setBoard(state.board);
-          setCurrentPlayer(state.currentPlayer);
-          setWinner(state.winner);
-          setSelectedCell(state.selectedCell);
-          setCurrentQuestion(state.currentQuestion);
-          setShowQuestion(state.showQuestion);
-          setShowError(state.showError);
-          setTeamNames(state.teamNames);
-          setGameStarted(state.gameStarted);
-          setSetupComplete(state.setupComplete);
-          setIntroComplete(state.introComplete);
-          setUsedQuestions(state.usedQuestions);
-          setPhase(state.phase);
-          setRound(state.round);
-          setRoundWins(state.roundWins);
-          setStage2Score(state.stage2Score);
-          setStage2Index(state.stage2Index);
-          setStage2QuestionOrder(state.stage2QuestionOrder);
-          setStage2ShowOptions(state.stage2ShowOptions);
-          setStage2Feedback(state.stage2Feedback);
-          setStage3Positions(state.stage3Positions);
-          setStage2IntroActive(state.stage2IntroActive);
-          setStage3IntroActive(state.stage3IntroActive);
-        }
-        if (event.data.type === 'PLAY_AUDIO') {
-          handlePlayAudio(event.data.url);
-        }
-      };
-    }
+    channel.onmessage = (event) => {
+      if (event.data.type === 'REQUEST_STATE') {
+        broadcastState();
+      }
+      if (event.data.type === 'STATE_UPDATE') {
+        const state = event.data.payload;
+        setBoard(state.board);
+        setCurrentPlayer(state.currentPlayer);
+        setWinner(state.winner);
+        setSelectedCell(state.selectedCell);
+        setCurrentQuestion(state.currentQuestion);
+        setShowQuestion(state.showQuestion);
+        setWrongFeedback(state.wrongFeedback);
+        setTeamNames(state.teamNames);
+        setGameStarted(state.gameStarted);
+        setSetupComplete(state.setupComplete);
+        setIntroComplete(state.introComplete);
+        setUsedQuestions(state.usedQuestions);
+        setPhase(state.phase);
+        setRound(state.round);
+        setRoundWins(state.roundWins);
+        setStage2Score(state.stage2Score);
+        setStage2Index(state.stage2Index);
+        setStage2QuestionOrder(state.stage2QuestionOrder);
+        setStage2ShowOptions(state.stage2ShowOptions);
+        setStage2Feedback(state.stage2Feedback);
+        setStage3Positions(state.stage3Positions);
+        setStage2IntroActive(state.stage2IntroActive);
+        setStage3IntroActive(state.stage3IntroActive);
+      }
+      if (event.data.type === 'PLAY_AUDIO') {
+        handlePlayAudio(event.data.url);
+      }
+    };
 
     return () => {
       channel.close();
     };
   }, [
-    isPresenter, board, currentPlayer, winner, selectedCell, 
-    currentQuestion, showQuestion, showError, teamNames, 
+    board, currentPlayer, winner, selectedCell, 
+    currentQuestion, showQuestion, wrongFeedback, teamNames, 
     gameStarted, setupComplete, introComplete, usedQuestions, phase, round, roundWins,
-    stage2Score, stage2Index, stage2ShowOptions, stage2Feedback, stage3Positions,
+    stage2Score, stage2Index, stage2QuestionOrder, stage2ShowOptions, stage2Feedback, stage3Positions,
     stage2IntroActive, stage3IntroActive, handlePlayAudio
   ]);
 
@@ -485,34 +473,47 @@ export default function App() {
 
     if (answerIndex === currentQuestion.correctIndex) {
       // Correct answer
+      setCorrectAnswerIndex(answerIndex);
       triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#f48fb1', '#4db6ac', '#ffffff']
+      });
+
       const newBoard = [...board];
       newBoard[selectedCell] = currentPlayer;
-      setBoard(newBoard);
-      setUsedQuestions(prev => [...prev, currentQuestion.id]);
       
-      const gameWinner = checkWinner(newBoard);
-      if (gameWinner) {
-        setWinner(gameWinner);
-        if (gameWinner !== 'Draw') {
-          setRoundWins(prev => ({
-            ...prev,
-            [gameWinner as Player]: prev[gameWinner as Player] + 1
-          }));
+      setTimeout(() => {
+        setBoard(newBoard);
+        setUsedQuestions(prev => [...prev, currentQuestion.id]);
+        
+        const gameWinner = checkWinner(newBoard);
+        if (gameWinner) {
+          setWinner(gameWinner);
+          if (gameWinner !== 'Draw') {
+            setRoundWins(prev => ({
+              ...prev,
+              [gameWinner as Player]: prev[gameWinner as Player] + 1
+            }));
+          }
+        } else {
+          setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
         }
-      } else {
-        setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-      }
-      setShowQuestion(false);
+        setShowQuestion(false);
+        setCorrectAnswerIndex(null);
+      }, 1500);
     } else {
       // Incorrect answer
       triggerAudio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
       setShowQuestion(false);
-      setShowError(true);
+      setWrongFeedback(true);
       setTimeout(() => {
-        setShowError(false);
+        setWrongFeedback(false);
         setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-      }, 2000);
+      }, 2500);
     }
   };
 
@@ -537,7 +538,7 @@ export default function App() {
   };
 
   const handleStage2Answer = (answerIndex: number) => {
-    if (!isPresenter || stage2Feedback) return;
+    if (stage2Feedback) return;
 
     const actualQuestionIndex = stage2QuestionOrder[stage2Index];
     const isCorrect = answerIndex === stage2Questions[actualQuestionIndex].correctIndex;
@@ -552,7 +553,6 @@ export default function App() {
   };
 
   const handleNextStage2Question = () => {
-    if (!isPresenter) return;
     setStage2Feedback(null);
     setStage2ShowOptions(false);
     if (stage2Index < stage2Questions.length - 1) {
@@ -565,7 +565,6 @@ export default function App() {
   };
 
   const updateStage2Score = (team: Player, delta: number) => {
-    if (!isPresenter) return;
     setStage2Score(prev => ({
       ...prev,
       [team]: Math.max(0, prev[team] + delta)
@@ -765,16 +764,10 @@ export default function App() {
 
                   <div className="flex flex-col gap-4 pt-4">
                     <button
-                      onClick={() => { setIsPresenter(true); setSetupComplete(true); }}
+                      onClick={() => { setSetupComplete(true); }}
                       className="bg-[#f48fb1] text-white py-4 rounded-2xl text-2xl font-bold shadow-lg hover:bg-[#f06292] transition-all"
                     >
-                      دخول المقدم (عرض الإجابات)
-                    </button>
-                    <button
-                      onClick={() => { setIsPresenter(false); setSetupComplete(true); }}
-                      className="bg-[#f48fb1]/80 text-white py-4 rounded-2xl text-2xl font-bold shadow-lg hover:bg-[#f48fb1] transition-all"
-                    >
-                      دخول كلاعبين
+                      دخول اللعبة
                     </button>
                   </div>
                 </motion.div>
@@ -852,11 +845,6 @@ export default function App() {
               <div className="text-[#4db6ac] font-bold text-lg">
                 الجولة {round} من 3
               </div>
-              {isPresenter && (
-                <div className="bg-[#e0f2f1] text-[#00796b] px-3 py-1 rounded-full text-sm font-bold inline-block self-center">
-                  وضع المقدم - الإجابات ظاهرة لك
-                </div>
-              )}
             </div>
           </motion.div>
 
@@ -900,15 +888,14 @@ export default function App() {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.3 + (i * 0.05), type: "spring" }}
-                whileHover={{ scale: (cell || !isPresenter) ? 1 : 1.05 }}
-                whileTap={{ scale: (cell || !isPresenter) ? 1 : 0.95 }}
-                onClick={() => isPresenter && handleCellClick(i)}
-                disabled={!!cell || !!winner || showError || !isPresenter}
+                whileHover={{ scale: cell ? 1 : 1.05 }}
+                whileTap={{ scale: cell ? 1 : 0.95 }}
+                onClick={() => handleCellClick(i)}
+                disabled={!!cell || !!winner || wrongFeedback}
                 className={cn(
                   "w-20 h-20 md:w-28 md:h-28 rounded-[1.2rem] flex items-center justify-center text-3xl md:text-5xl transition-colors duration-300",
                   cell ? "bg-white shadow-inner" : "bg-white/80 hover:bg-white shadow-lg",
-                  !cell && !winner && isPresenter && "hover:shadow-2xl cursor-pointer",
-                  !isPresenter && "cursor-default"
+                  !cell && !winner && "hover:shadow-2xl cursor-pointer"
                 )}
               >
               <AnimatePresence mode="wait">
@@ -949,13 +936,11 @@ export default function App() {
 
         {/* Reset Button */}
         <motion.button
-          whileHover={{ scale: isPresenter ? 1.1 : 1 }}
-          whileTap={{ scale: isPresenter ? 0.9 : 1 }}
-          onClick={() => isPresenter && resetGame()}
-          disabled={!isPresenter}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => resetGame()}
           className={cn(
-            "mt-4 flex items-center gap-2 bg-[#4db6ac] text-white px-6 py-2 rounded-full font-bold shadow-xl transition-colors text-base",
-            isPresenter ? "hover:bg-[#00897b] cursor-pointer" : "opacity-50 cursor-default"
+            "mt-4 flex items-center gap-2 bg-[#4db6ac] text-white px-6 py-2 rounded-full font-bold shadow-xl transition-colors text-base hover:bg-[#00897b] cursor-pointer"
           )}
         >
           <RotateCcw className="w-5 h-5" />
@@ -1004,29 +989,22 @@ export default function App() {
                 )}
                 
                 <div className="grid grid-cols-1 gap-3">
-                  {currentQuestion.options.map((option, idx) => (
-                    <motion.button
-                      key={idx}
-                      whileHover={{ scale: isPresenter ? 1.02 : 1, backgroundColor: isPresenter ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)" }}
-                      whileTap={{ scale: isPresenter ? 0.98 : 1 }}
-                      onClick={() => isPresenter && handleAnswer(idx)}
-                      disabled={!isPresenter}
-                      className={cn(
-                        "w-full py-4 px-6 rounded-2xl border-2 text-right text-lg font-bold transition-colors",
-                        currentPlayer === 'X' ? "bg-white/10 border-white/20" : "bg-black/5 border-[#4db6ac]/20",
-                        isPresenter && idx === currentQuestion.correctIndex && (currentPlayer === 'X' ? "bg-green-400/40 border-green-300" : "bg-[#4db6ac]/20 border-[#00796b]"),
-                        !isPresenter && "cursor-default"
-                      )}
-                    >
-                      {option}
-                      {isPresenter && idx === currentQuestion.correctIndex && (
-                        <span className={cn(
-                          "mr-2 text-sm px-2 py-1 rounded-lg",
-                          currentPlayer === 'X' ? "bg-white text-[#1b5e20]" : "bg-[#4db6ac] text-white"
-                        )}>الإجابة الصحيحة</span>
-                      )}
-                    </motion.button>
-                  ))}
+                    {currentQuestion.options.map((option, idx) => (
+                      <motion.button
+                        key={idx}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleAnswer(idx)}
+                        className={cn(
+                          "w-full py-4 px-6 rounded-2xl border-2 text-right text-lg font-bold transition-all duration-500",
+                          currentPlayer === 'X' 
+                            ? (correctAnswerIndex === idx ? "bg-[#4db6ac] text-white border-white animate-bounce" : "bg-white/10 border-white/20") 
+                            : (correctAnswerIndex === idx ? "bg-[#f48fb1] text-white border-white animate-bounce" : "bg-black/5 border-[#4db6ac]/20")
+                        )}
+                      >
+                        {option}
+                      </motion.button>
+                    ))}
                 </div>
               </div>
             )}
@@ -1035,31 +1013,49 @@ export default function App() {
 
         {/* Error Overlay */}
         <AnimatePresence>
-          {showError && (
+          {wrongFeedback && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md"
             >
               <motion.div
-                initial={{ scale: 0.5, rotate: -20 }}
-                animate={{ scale: 1.5, rotate: 0 }}
-                exit={{ scale: 2, opacity: 0 }}
-                className="flex flex-col items-center justify-center p-8"
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ 
+                  scale: 1, 
+                  rotate: 0,
+                  transition: { type: "spring", stiffness: 200, damping: 20 }
+                }}
+                exit={{ scale: 1.5, opacity: 0 }}
+                className="relative"
               >
-                <div className="relative">
-                  <X 
-                    className="w-64 h-64 md:w-96 md:h-96 text-[#f48fb1] drop-shadow-[0_0_15px_rgba(200,230,201,0.8)]" 
-                    strokeWidth={12} 
-                    style={{ 
-                      filter: 'drop-shadow(0 0 2px #c8e6c9) drop-shadow(0 0 2px #c8e6c9) drop-shadow(0 0 2px #c8e6c9)' 
+                <div className="relative flex flex-col items-center">
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.05, 1],
                     }}
-                  />
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="relative"
+                  >
+                    <X 
+                      className="w-80 h-80 md:w-[500px] md:h-[500px] text-[#f48fb1] drop-shadow-[0_0_50px_rgba(244,143,177,1)]" 
+                      strokeWidth={8} 
+                      style={{ 
+                        filter: 'blur(0.5px)'
+                      }}
+                    />
+                    <div className="absolute inset-0 blur-3xl bg-[#f48fb1]/30 rounded-full scale-110" />
+                  </motion.div>
+                  <motion.p 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-white text-5xl md:text-7xl font-black mt-8 drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"
+                  >
+                    إجابة خاطئة
+                  </motion.p>
                 </div>
-                <p className="text-white text-5xl font-black text-center mt-8 drop-shadow-lg scale-75">
-                  إجابة خاطئة
-                </p>
               </motion.div>
             </motion.div>
           )}
@@ -1093,7 +1089,6 @@ export default function App() {
                 </h2>
                 <Button 
                   onClick={() => {
-                    if (!isPresenter) return;
                     if (phase === 1) {
                       if (winner !== 'Draw' && roundWins[winner as Player] >= 2) {
                         setPhase(2);
@@ -1113,13 +1108,11 @@ export default function App() {
                       setIntroComplete(false);
                     }
                   }}
-                  disabled={!isPresenter}
                   className={cn(
                     "w-full py-4 text-lg rounded-xl transition-all font-black shadow-lg",
                     winner === 'X' ? "bg-white text-[#f48fb1] hover:bg-white/90" : 
                     winner === 'O' ? "bg-[#4db6ac] text-white hover:bg-[#00897b]" : 
-                    "bg-[#4db6ac] text-white",
-                    !isPresenter && "opacity-50 cursor-default"
+                    "bg-[#4db6ac] text-white"
                   )}
                 >
                   {phase === 1 ? (
@@ -1342,9 +1335,9 @@ export default function App() {
                     {stage2Questions[stage2QuestionOrder[stage2Index]].options.map((opt, i) => (
                       <motion.button
                         key={i}
-                        disabled={!isPresenter || stage2Feedback !== null}
-                        whileHover={isPresenter && !stage2Feedback ? { scale: 1.02, backgroundColor: '#fce4ec' } : {}}
-                        whileTap={isPresenter && !stage2Feedback ? { scale: 0.98 } : {}}
+                        disabled={stage2Feedback !== null}
+                        whileHover={!stage2Feedback ? { scale: 1.02, backgroundColor: '#fce4ec' } : {}}
+                        whileTap={!stage2Feedback ? { scale: 0.98 } : {}}
                         onClick={() => handleStage2Answer(i)}
                         className={cn(
                           "py-3 px-4 text-lg md:text-xl font-black rounded-[1.2rem] shadow-lg border-4 transition-all relative overflow-hidden",
@@ -1379,7 +1372,7 @@ export default function App() {
                     ))}
 
                     <AnimatePresence>
-                      {stage2Feedback && isPresenter && (
+                      {stage2Feedback && (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -1509,10 +1502,10 @@ export default function App() {
               >
                 {stage3Positions.X === i && (
                   <motion.div layoutId="cap-x">
-                    <GraduationCap className="w-8 h-8 text-white drop-shadow-md" />
+                    <GraduationCap className="w-6 h-6 text-white drop-shadow-md" />
                   </motion.div>
                 )}
-                {i === 19 && <Trophy className={cn("w-7 h-7", stage3Positions.X === 19 ? "text-[#fbc02d]" : "text-yellow-600")} />}
+                {i === 19 && <Trophy className={cn("w-6 h-6", stage3Positions.X === 19 ? "text-[#fbc02d]" : "text-yellow-600")} />}
               </div>
             ))}
           </div>
@@ -1542,10 +1535,10 @@ export default function App() {
               >
                 {stage3Positions.O === i && (
                   <motion.div layoutId="cap-o">
-                    <GraduationCap className="w-8 h-8 text-white drop-shadow-md" />
+                    <GraduationCap className="w-6 h-6 text-white drop-shadow-md" />
                   </motion.div>
                 )}
-                {i === 19 && <Trophy className={cn("w-7 h-7", stage3Positions.O === 19 ? "text-[#fbc02d]" : "text-yellow-600")} />}
+                {i === 19 && <Trophy className={cn("w-6 h-6", stage3Positions.O === 19 ? "text-[#fbc02d]" : "text-yellow-600")} />}
               </div>
             ))}
           </div>
@@ -1618,16 +1611,16 @@ export default function App() {
       )}>
         <DialogHeader className="shrink-0">
           <DialogTitle className={cn(
-            "text-2xl font-black text-center mb-2",
+            "text-xl font-black text-center mb-1",
             currentPlayer === 'X' ? "text-[#f48fb1]" : "text-[#4db6ac]"
           )}>
             سؤال لـ {currentPlayer === 'X' ? teamNames.X : teamNames.O}
           </DialogTitle>
           
           {/* Elegant Timer Design */}
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-2">
             <div className={cn(
-              "relative w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-inner overflow-hidden transition-colors duration-300",
+              "relative w-14 h-14 rounded-full flex items-center justify-center border-4 shadow-inner overflow-hidden transition-colors duration-300",
               stage3Timer <= 3 ? "border-red-500 bg-red-50 animate-pulse" : 
               currentPlayer === 'X' ? "border-[#f48fb1] bg-white" : "border-[#4db6ac] bg-white"
             )}>
@@ -1651,9 +1644,9 @@ export default function App() {
             </div>
           </div>
         </DialogHeader>
-        <div className="flex-1 flex flex-col min-h-0 space-y-4 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 space-y-4 overflow-visible">
           {stage3CurrentQuestion?.imageUrl && (
-            <div className="flex-1 flex flex-col justify-center items-center min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col justify-center items-center min-h-0 overflow-visible pb-2">
               <img 
                 src={stage3CurrentQuestion.imageUrl} 
                 alt="Question" 
@@ -1661,7 +1654,7 @@ export default function App() {
                 className="max-w-full max-h-full object-contain rounded-2xl shadow-lg border-4 border-white cursor-zoom-in hover:scale-[1.02] transition-transform"
                 referrerPolicy="no-referrer"
               />
-              <p className="text-[10px] font-bold text-[#f48fb1] mt-2 animate-pulse">
+              <p className="text-xs md:text-sm font-black text-white bg-[#f48fb1]/80 px-4 py-1.5 rounded-full mt-3 shadow-lg border-2 border-white/50 backdrop-blur-sm animate-pulse z-10">
                 ( اضغط على الصورة لتكبيرها )
               </p>
             </div>
@@ -1682,7 +1675,7 @@ export default function App() {
               <p 
                 dir="rtl"
                 className={cn(
-                "text-3xl md:text-4xl font-black text-right leading-relaxed px-8 transition-colors break-words w-full",
+                "text-2xl md:text-3xl font-black text-right leading-relaxed px-8 transition-colors break-words w-full",
                 currentPlayer === 'X' ? "text-[#f48fb1]" : "text-[#4db6ac]"
               )}>
                 {stage3CurrentQuestion?.text.replace('اكمل المثل: ', '').replace('أكمل المثل: ', '')}
@@ -1690,9 +1683,9 @@ export default function App() {
             </div>
           )}
           
-          <div className="shrink-0 pt-2">
+          <div className="shrink-0 pt-2 flex flex-col items-center gap-2">
             {stage3CurrentQuestion?.isPresenterOnly ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 w-full">
                 <button
                   onClick={() => {
                     triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
@@ -1717,7 +1710,7 @@ export default function App() {
                       setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
                     }
                   }}
-                  className="py-4 px-4 text-lg font-black rounded-2xl bg-[#4db6ac] text-white border-2 border-white shadow-lg hover:bg-[#00897b] transition-all"
+                  className="py-3 px-3 text-base font-black rounded-2xl bg-[#4db6ac] text-white border-2 border-white shadow-lg hover:bg-[#00897b] transition-all"
                 >
                   إجابة صحيحة
                 </button>
@@ -1726,19 +1719,19 @@ export default function App() {
                     triggerAudio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
                     setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
                     setShowStage3Question(false);
-                    setShowError(true);
+                    setWrongFeedback(true);
                     setTimeout(() => {
-                      setShowError(false);
+                      setWrongFeedback(false);
                       setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-                    }, 2000);
+                    }, 2500);
                   }}
-                  className="py-4 px-4 text-lg font-black rounded-2xl bg-[#f48fb1] text-white border-2 border-white shadow-lg hover:bg-[#f06292] transition-all"
+                  className="py-3 px-3 text-base font-black rounded-2xl bg-[#f48fb1] text-white border-2 border-white shadow-lg hover:bg-[#f06292] transition-all"
                 >
                   إجابة خاطئة
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-3 w-full">
                 {stage3CurrentQuestion?.options.map((opt, i) => (
                   <button
                     key={i}
@@ -1767,18 +1760,18 @@ export default function App() {
                       } else {
                         setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
                         setShowStage3Question(false);
-                        setShowError(true);
+                        setWrongFeedback(true);
                         setTimeout(() => {
-                          setShowError(false);
+                          setWrongFeedback(false);
                           setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-                        }, 2000);
+                        }, 2500);
                       }
                     }}
                     className={cn(
                       "py-2 px-4 text-base font-black rounded-xl border-2 border-white shadow-md transition-all",
                       currentPlayer === 'X' 
-                        ? "bg-white text-[#f48fb1] hover:bg-[#f48fb1] hover:text-white" 
-                        : "bg-white text-[#4db6ac] hover:bg-[#4db6ac] hover:text-white"
+                        ? (showStage3Answer && i === stage3CurrentQuestion.correctIndex ? "bg-[#4db6ac] text-white" : "bg-white text-[#f48fb1] hover:bg-[#f48fb1] hover:text-white") 
+                        : (showStage3Answer && i === stage3CurrentQuestion.correctIndex ? "bg-[#f48fb1] text-white" : "bg-white text-[#4db6ac] hover:bg-[#4db6ac] hover:text-white")
                     )}
                   >
                     {opt}
@@ -1787,11 +1780,28 @@ export default function App() {
               </div>
             )}
 
-            {isPresenter && stage3CurrentQuestion?.answerText && (
-              <div className="mt-2 p-2 bg-white/20 rounded-xl border border-white/30 text-center">
-                <p className="text-sm font-bold text-gray-700">الإجابة: {stage3CurrentQuestion.answerText}</p>
-              </div>
+            {stage3CurrentQuestion && (
+                <button
+                  onClick={() => setShowStage3Answer(!showStage3Answer)}
+                  className="mt-4 py-3 px-8 text-sm font-black rounded-xl bg-gradient-to-r from-[#f48fb1] via-[#4db6ac] to-[#f48fb1] bg-[length:200%_auto] animate-gradient-x border-2 border-white text-white shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <GraduationCap className="w-4 h-4 drop-shadow-sm" />
+                  {showStage3Answer ? "إخفاء الإجابة" : "عرض الإجابة"}
+                </button>
             )}
+
+            <AnimatePresence>
+              {showStage3Answer && stage3CurrentQuestion?.answerText && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="w-full mt-2 p-2 bg-white rounded-xl border border-white/30 text-center"
+                >
+                  <p className="text-sm font-bold text-gray-700">الإجابة: {stage3CurrentQuestion.answerText}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </DialogContent>
@@ -1869,7 +1879,7 @@ export default function App() {
               className="absolute top-12 right-12 bg-white/40 hover:bg-white/60 p-4 rounded-full backdrop-blur-xl transition-all shadow-2xl border-2 border-white/50 group"
               onClick={() => setShowImageZoom(false)}
             >
-              <X className="w-10 h-10 text-white group-hover:scale-110 transition-transform" />
+              <X className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
             </button>
           </div>
         )}
@@ -1901,7 +1911,7 @@ export default function App() {
               className="py-4 px-6 text-lg font-black rounded-2xl bg-[#4db6ac] text-white border-4 border-white shadow-xl hover:scale-105 transition-transform flex flex-col items-center justify-center gap-2"
             >
               <span className="leading-tight">إجبار الفريق {currentPlayer === 'X' ? teamNames.O : teamNames.X} على التراجع خطوة</span>
-              <span className="text-2xl">🔙</span>
+              <span className="text-xl">🔙</span>
             </button>
             <button
               onClick={() => {
@@ -1915,7 +1925,7 @@ export default function App() {
               className="py-4 px-6 text-lg font-black rounded-2xl bg-[#4db6ac] text-white border-4 border-white shadow-xl hover:scale-105 transition-transform flex flex-col items-center justify-center gap-2"
             >
               <span className="leading-tight">التقدم خطوة للأمام بدون الحاجة للإجابة عن سؤال</span>
-              <span className="text-2xl">🚀</span>
+              <span className="text-xl">🚀</span>
             </button>
           </div>
         </div>
