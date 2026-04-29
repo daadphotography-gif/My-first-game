@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Circle, Trophy, RotateCcw, HelpCircle, ArrowRight, Maximize, Minimize, Play, Pause, Volume2, Mic, GraduationCap } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { questions, stage2Questions, stage3Questions, Question } from './data/questions';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,10 +70,23 @@ export default function App() {
     return saved ? JSON.parse(saved) : { X: 0, O: 0 };
   });
   const [stage2Index, setStage2Index] = useState(0);
+  const [stage2QuestionOrder, setStage2QuestionOrder] = useState<number[]>(() => {
+    const saved = localStorage.getItem('stage2QuestionOrder');
+    return saved ? JSON.parse(saved) : Array.from({ length: stage2Questions.length }, (_, i) => i);
+  });
   const [stage2ShowOptions, setStage2ShowOptions] = useState(false);
   const [stage2Score, setStage2Score] = useState<{ X: number; O: number }>(() => {
     const saved = localStorage.getItem('stage2Score');
     return saved ? JSON.parse(saved) : { X: 0, O: 0 };
+  });
+  const [stage2Feedback, setStage2Feedback] = useState<{ index: number; isCorrect: boolean } | null>(null);
+  const [stage2IntroActive, setStage2IntroActive] = useState(() => {
+    const saved = localStorage.getItem('stage2IntroActive');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [stage3IntroActive, setStage3IntroActive] = useState(() => {
+    const saved = localStorage.getItem('stage3IntroActive');
+    return saved ? JSON.parse(saved) : false;
   });
   const [stage3Positions, setStage3Positions] = useState<{ X: number; O: number }>(() => {
     const saved = localStorage.getItem('stage3Positions');
@@ -90,21 +104,57 @@ export default function App() {
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [stage3Timer, setStage3Timer] = useState(20);
+  const [stage3Timer, setStage3Timer] = useState(40);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isZoomTransitionPaused, setIsZoomTransitionPaused] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  // Background configurations
+  const BACKGROUNDS = {
+    WIDE: {
+      start: "https://www.dropbox.com/scl/fi/g5i22vcxp6ymsykhzw4ff/Photo-11-04-2026-7-54-55-AM.jpg?rlkey=sg4bsp8r42kj58qmdbsbzkxfn&st=803zg5qm&raw=1",
+      intro: "https://www.dropbox.com/scl/fi/7uciimcp5ppj3d3hqni95/Photo-12-04-2026-11-25-57-PM.jpg?rlkey=bw14grx4tpxq8xegf1rpjnyso&st=fqe89yho&raw=1",
+      game: "https://www.dropbox.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&st=2k8t0k7z&raw=1",
+      stage2: "https://www.dropbox.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&st=qaqparq7&raw=1",
+      stage2Intro: "https://www.dropbox.com/scl/fi/s4e53lifdlnhlr68k6ty4/Photo-27-04-2026-12-58-25-PM-1.png?rlkey=zhaq46c87n286sarb5txrdbq7&st=lh9swevu&raw=1",
+      stage3: "https://www.dropbox.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&st=90tgsqog&raw=1",
+      stage3Intro: "https://www.dropbox.com/scl/fi/vy8nk3f4ng0hevtkn45ba/Photo-27-04-2026-12-58-25-PM.png?rlkey=0uc26lbhjfvugrwzqz5y6qe0q&st=i5few16m&raw=1",
+      victory: "https://www.dropbox.com/scl/fi/qhvunsimuuxgods1nivlj/Photo-27-04-2026-12-58-25-PM-2.png?rlkey=rar0qkko9gexkk8x6g0u86mtw&st=h65qog0o&raw=1"
+    },
+    MOBILE: {
+      // Placeholders for now - User will provide mobile URLs
+      start: "https://www.dropbox.com/scl/fi/mvp9rwsqoopwoh1k4xk02/Photo-27-04-2026-5-58-14-PM.jpg?rlkey=d6emzuspr0knpyxkkt0oe6xxu&st=olvq6hpk&raw=1",
+      intro: "https://www.dropbox.com/scl/fi/7uciimcp5ppj3d3hqni95/Photo-12-04-2026-11-25-57-PM.jpg?rlkey=bw14grx4tpxq8xegf1rpjnyso&st=fqe89yho&raw=1",
+      game: "https://www.dropbox.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&st=2k8t0k7z&raw=1",
+      stage2: "https://www.dropbox.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&st=qaqparq7&raw=1",
+      stage2Intro: "https://www.dropbox.com/scl/fi/s4e53lifdlnhlr68k6ty4/Photo-27-04-2026-12-58-25-PM-1.png?rlkey=zhaq46c87n286sarb5txrdbq7&st=lh9swevu&raw=1",
+      stage3: "https://www.dropbox.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&st=90tgsqog&raw=1",
+      stage3Intro: "https://www.dropbox.com/scl/fi/vy8nk3f4ng0hevtkn45ba/Photo-27-04-2026-12-58-25-PM.png?rlkey=0uc26lbhjfvugrwzqz5y6qe0q&st=i5few16m&raw=1",
+      victory: "https://www.dropbox.com/scl/fi/qhvunsimuuxgods1nivlj/Photo-27-04-2026-12-58-25-PM-2.png?rlkey=rar0qkko9gexkk8x6g0u86mtw&st=h65qog0o&raw=1"
+    }
+  };
+
+  const getBg = (key: keyof typeof BACKGROUNDS.WIDE) => {
+    return isMobile ? BACKGROUNDS.MOBILE[key] : BACKGROUNDS.WIDE[key];
+  };
+
+  // Detect screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Non-blocking preloading
   useEffect(() => {
     const stage3Urls = stage3Questions.map(q => q.imageUrl).filter((url): url is string => !!url);
-    const stage1Urls = [
-      "https://www.dropbox.com/scl/fi/g5i22vcxp6ymsykhzw4ff/Photo-11-04-2026-7-54-55-AM.jpg?rlkey=sg4bsp8r42kj58qmdbsbzkxfn&st=803zg5qm&raw=1",
-      "https://www.dropbox.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&st=2k8t0k7z&raw=1",
-      "https://www.dropbox.com/scl/fi/7uciimcp5ppj3d3hqni95/Photo-12-04-2026-11-25-57-PM.jpg?rlkey=bw14grx4tpxq8xegf1rpjnyso&st=fqe89yho&raw=1",
-      "https://www.dropbox.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&st=qaqparq7&raw=1",
-      "https://www.dropbox.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&st=90tgsqog&raw=1"
+    const backgroundUrls = [
+      ...Object.values(BACKGROUNDS.WIDE),
+      ...Object.values(BACKGROUNDS.MOBILE)
     ];
-    const imageUrls = [...stage1Urls, ...stage3Urls];
+    const imageUrls = [...backgroundUrls, ...stage3Urls];
 
     // Cache images in background
     imageUrls.forEach(url => {
@@ -153,9 +203,24 @@ export default function App() {
     localStorage.setItem('round', JSON.stringify(round));
     localStorage.setItem('roundWins', JSON.stringify(roundWins));
     localStorage.setItem('stage2Score', JSON.stringify(stage2Score));
+    localStorage.setItem('stage2QuestionOrder', JSON.stringify(stage2QuestionOrder));
     localStorage.setItem('stage3Positions', JSON.stringify(stage3Positions));
     localStorage.setItem('introComplete', JSON.stringify(introComplete));
-  }, [gameStarted, setupComplete, introComplete, isPresenter, teamNames, board, currentPlayer, winner, usedQuestions, phase, round, roundWins, stage2Score, stage3Positions]);
+    localStorage.setItem('stage2IntroActive', JSON.stringify(stage2IntroActive));
+    localStorage.setItem('stage3IntroActive', JSON.stringify(stage3IntroActive));
+  }, [gameStarted, setupComplete, introComplete, isPresenter, teamNames, board, currentPlayer, winner, usedQuestions, phase, round, roundWins, stage2Score, stage2QuestionOrder, stage3Positions, stage2IntroActive, stage3IntroActive]);
+
+  // Shuffle stage 2 questions when presenter enters phase 2
+  useEffect(() => {
+    if (phase === 2 && isPresenter) {
+      setStage2QuestionOrder(prev => {
+        const shuffled = [...prev].sort(() => Math.random() - 0.5);
+        return shuffled;
+      });
+      // Initial sound for stage 2
+      triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+    }
+  }, [phase, isPresenter]);
 
 
   const audioRef = useRef<HTMLVideoElement | null>(null);
@@ -192,7 +257,7 @@ export default function App() {
   // Reset timer when question opens/closes
   useEffect(() => {
     if (showStage3Question) {
-      setStage3Timer(20);
+      setStage3Timer(40);
       // Delay starting the timer for 1.5 seconds to give players time to see the content
       const startDelay = setTimeout(() => {
         setIsTimerActive(true);
@@ -282,7 +347,13 @@ export default function App() {
             round,
             roundWins,
             stage2Score,
-            stage3Positions
+            stage2Index,
+            stage2QuestionOrder,
+            stage2ShowOptions,
+            stage2Feedback,
+            stage3Positions,
+            stage2IntroActive,
+            stage3IntroActive
           }
         });
       };
@@ -319,7 +390,13 @@ export default function App() {
           setRound(state.round);
           setRoundWins(state.roundWins);
           setStage2Score(state.stage2Score);
+          setStage2Index(state.stage2Index);
+          setStage2QuestionOrder(state.stage2QuestionOrder);
+          setStage2ShowOptions(state.stage2ShowOptions);
+          setStage2Feedback(state.stage2Feedback);
           setStage3Positions(state.stage3Positions);
+          setStage2IntroActive(state.stage2IntroActive);
+          setStage3IntroActive(state.stage3IntroActive);
         }
         if (event.data.type === 'PLAY_AUDIO') {
           handlePlayAudio(event.data.url);
@@ -334,8 +411,38 @@ export default function App() {
     isPresenter, board, currentPlayer, winner, selectedCell, 
     currentQuestion, showQuestion, showError, teamNames, 
     gameStarted, setupComplete, introComplete, usedQuestions, phase, round, roundWins,
-    handlePlayAudio
+    stage2Score, stage2Index, stage2ShowOptions, stage2Feedback, stage3Positions,
+    stage2IntroActive, stage3IntroActive, handlePlayAudio
   ]);
+
+  // Handle Confetti on Winner
+  useEffect(() => {
+    if (winner && winner !== 'Draw' && (phase === 3 || (phase === 2 && stage2Index >= stage2Questions.length - 1))) {
+      const colors = ['#f48fb1', '#4db6ac', '#81c784', '#ce93d8', '#ffcc80'];
+      const end = Date.now() + 3 * 1000;
+
+      (function frame() {
+        confetti({
+          particleCount: 3,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: colors
+        });
+        confetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: colors
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+    }
+  }, [winner, phase, stage2Index]);
 
   // Check for winner
   const checkWinner = useCallback((currentBoard: CellValue[]) => {
@@ -378,6 +485,7 @@ export default function App() {
 
     if (answerIndex === currentQuestion.correctIndex) {
       // Correct answer
+      triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
       const newBoard = [...board];
       newBoard[selectedCell] = currentPlayer;
       setBoard(newBoard);
@@ -398,6 +506,7 @@ export default function App() {
       setShowQuestion(false);
     } else {
       // Incorrect answer
+      triggerAudio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
       setShowQuestion(false);
       setShowError(true);
       setTimeout(() => {
@@ -412,10 +521,10 @@ export default function App() {
       const winnerWins = roundWins[winner as Player];
       if (winnerWins >= 2) {
         setPhase(2);
+        setStage2IntroActive(true);
         setRound(1);
         setRoundWins({ X: 0, O: 0 });
         setUsedQuestions([]);
-        setIntroComplete(false); // Reset intro for Phase 2 if needed, or keep it. User didn't specify.
       } else {
         setRound(prev => prev + 1);
       }
@@ -427,6 +536,43 @@ export default function App() {
     setSelectedCell(null);
   };
 
+  const handleStage2Answer = (answerIndex: number) => {
+    if (!isPresenter || stage2Feedback) return;
+
+    const actualQuestionIndex = stage2QuestionOrder[stage2Index];
+    const isCorrect = answerIndex === stage2Questions[actualQuestionIndex].correctIndex;
+    setStage2Feedback({ index: answerIndex, isCorrect });
+
+    // Play feedback sound
+    if (isCorrect) {
+      triggerAudio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
+    } else {
+      triggerAudio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
+    }
+  };
+
+  const handleNextStage2Question = () => {
+    if (!isPresenter) return;
+    setStage2Feedback(null);
+    setStage2ShowOptions(false);
+    if (stage2Index < stage2Questions.length - 1) {
+      setStage2Index(prev => prev + 1);
+      // Play a transition sound
+      triggerAudio("https://www.soundjay.com/buttons/sounds/button-21.mp3");
+    } else {
+      setStage2Index(0); // Loop back or signal end
+    }
+  };
+
+  const updateStage2Score = (team: Player, delta: number) => {
+    if (!isPresenter) return;
+    setStage2Score(prev => ({
+      ...prev,
+      [team]: Math.max(0, prev[team] + delta)
+    }));
+    triggerAudio("https://www.soundjay.com/buttons/sounds/button-20.mp3");
+  };
+
   if (!imagesLoaded) {
     return (
       <div className="h-full w-full bg-black flex items-center justify-center">
@@ -436,67 +582,86 @@ export default function App() {
   }
 
   return (
-    <div className="h-full w-full relative bg-black overflow-hidden" dir="rtl">
+    <div className="h-full w-full relative overflow-hidden" dir="rtl">
       {/* Persistent Background Layer */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Start & Setup Background */}
         <motion.img 
-          key="bg-start"
-          src="https://www.dropbox.com/scl/fi/g5i22vcxp6ymsykhzw4ff/Photo-11-04-2026-7-54-55-AM.jpg?rlkey=sg4bsp8r42kj58qmdbsbzkxfn&st=803zg5qm&raw=1" 
+          src={getBg('start')}
           alt="Background Start"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
           animate={{ opacity: !gameStarted || !setupComplete ? 1 : 0 }}
           transition={{ duration: 0.5 }}
-          style={{ imageRendering: '-webkit-optimize-contrast' }}
           referrerPolicy="no-referrer"
         />
         {/* Intro Background */}
         <motion.img 
-          key="bg-intro"
-          src="https://www.dropbox.com/scl/fi/7uciimcp5ppj3d3hqni95/Photo-12-04-2026-11-25-57-PM.jpg?rlkey=bw14grx4tpxq8xegf1rpjnyso&st=fqe89yho&raw=1" 
+          src={getBg('intro')}
           alt="Background Intro"
           className="absolute inset-0 w-full h-full object-cover"
           initial={{ opacity: 0 }}
           animate={{ opacity: gameStarted && setupComplete && !introComplete ? 1 : 0 }}
           transition={{ duration: 0.5 }}
-          style={{ imageRendering: '-webkit-optimize-contrast' }}
           referrerPolicy="no-referrer"
         />
         {/* Game Background */}
         <motion.img 
-          key="bg-game"
-          src="https://www.dropbox.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&st=2k8t0k7z&raw=1" 
+          src={getBg('game')}
           alt="Background Game"
           className="absolute inset-0 w-full h-full object-cover"
           initial={{ opacity: 0 }}
-          animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 1 ? 1 : 0 }}
+          animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 1 && !winner ? 1 : 0 }}
           transition={{ duration: 0.5 }}
-          style={{ imageRendering: '-webkit-optimize-contrast' }}
           referrerPolicy="no-referrer"
         />
         {/* Stage 2 Background - Pastel Stage */}
         <motion.img
-          key="bg-stage2"
-          src="https://www.dropbox.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&st=qaqparq7&raw=1"
+          src={getBg('stage2')}
           alt="Background Stage 2"
           className="absolute inset-0 w-full h-full object-cover"
           initial={{ opacity: 0 }}
-          animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 2 ? 1 : 0 }}
+          animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 2 && !stage2IntroActive && !winner ? 1 : 0 }}
           transition={{ duration: 0.5 }}
-          style={{ imageRendering: '-webkit-optimize-contrast' }}
           referrerPolicy="no-referrer"
         />
         {/* Stage 3 Background - Map/Path */}
         <motion.img
-          key="bg-stage3"
-          src="https://www.dropbox.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&st=90tgsqog&raw=1"
+          src={getBg('stage3')}
           alt="Background Stage 3"
           className="absolute inset-0 w-full h-full object-cover"
           initial={{ opacity: 0 }}
-          animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 3 ? 1 : 0 }}
+          animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 3 && !stage3IntroActive && !winner ? 1 : 0 }}
           transition={{ duration: 0.5 }}
-          style={{ imageRendering: '-webkit-optimize-contrast' }}
+          referrerPolicy="no-referrer"
+        />
+        {/* Stage 2 Intro Background */}
+        <motion.img
+          src={getBg('stage2Intro')}
+          alt="Background Stage 2 Intro"
+          className="absolute inset-0 w-full h-full object-cover"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: phase === 2 && stage2IntroActive ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
+          referrerPolicy="no-referrer"
+        />
+        {/* Stage 3 Intro Background */}
+        <motion.img
+          src={getBg('stage3Intro')}
+          alt="Background Stage 3 Intro"
+          className="absolute inset-0 w-full h-full object-cover"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: phase === 3 && stage3IntroActive ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
+          referrerPolicy="no-referrer"
+        />
+        {/* Victory Background */}
+        <motion.img
+          src={getBg('victory')}
+          alt="Background Victory"
+          className="absolute inset-0 w-full h-full object-cover"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: !!winner && (phase === 3 || (phase === 2 && winner !== 'Draw' && stage2Index >= stage2Questions.length - 1)) ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
           referrerPolicy="no-referrer"
         />
       </div>
@@ -522,7 +687,10 @@ export default function App() {
             className="relative z-10 h-full w-full flex flex-col items-center justify-center" 
           >
             <div className="relative w-full h-full max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden">
-              <div className="relative z-10 flex flex-col items-center justify-end h-full pb-[15%]">
+              <div className={cn(
+                "relative z-10 flex flex-col items-center h-full",
+                isMobile ? "justify-center" : "justify-end pb-[15%]"
+              )}>
                   <motion.button
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -537,7 +705,10 @@ export default function App() {
                       }
                       setGameStarted(true);
                     }}
-                    className="bg-[#f48fb1] text-white px-5 py-2 rounded-full text-base font-black shadow-[0_4px_0_rgb(194,24,91)] transition-all flex items-center justify-center min-w-[140px]"
+                    className={cn(
+                      "bg-[#f48fb1] text-white px-5 py-2 rounded-full text-base font-black shadow-[0_4px_0_rgb(194,24,91)] transition-all flex items-center justify-center min-w-[140px]",
+                      isMobile && "translate-y-[28mm]"
+                    )}
                   >
                     <Play className="w-3.5 h-3.5 ml-2" />
                     ابدأ اللعب
@@ -634,8 +805,9 @@ export default function App() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setIntroComplete(true)}
-                  className="absolute bottom-[22%] left-[50%] translate-x-[-50%] bg-[#f48fb1] text-white px-8 py-2.5 rounded-full text-xl font-black shadow-[0_4px_0_rgb(194,24,91)] transition-all flex items-center justify-center min-w-[140px]"
+                  className="absolute bottom-[22%] left-[50%] translate-x-[-50%] bg-[#f48fb1] text-white px-8 py-3 rounded-full text-xl font-black shadow-[0_4px_0_rgb(194,24,91)] transition-all flex items-center justify-center min-w-[200px]"
                 >
+                  <Play className="w-6 h-6 ml-2" />
                   ابدأ
                 </motion.button>
               </div>
@@ -660,6 +832,14 @@ export default function App() {
             <div className="relative w-full h-full max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden flex flex-col items-center justify-center">
               <div className="relative z-10 flex flex-col items-center justify-center w-full h-full p-4 pt-[10vh]">
           {/* Header */}
+          <button
+            onClick={() => {
+              setIntroComplete(false);
+            }}
+            className="absolute top-12 right-12 z-20 bg-white/80 p-4 rounded-full shadow-lg hover:bg-white transition-all text-[#2e7d32]"
+          >
+            <ArrowRight className="w-8 h-8" />
+          </button>
           <motion.div 
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -892,49 +1072,40 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4"
             >
               <motion.div
                 initial={{ scale: 0.8, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
+                animate={{ scale: 1, y: -50 }}
                 className={cn(
-                  "p-12 rounded-[3rem] text-center shadow-2xl max-w-md w-full border-4 border-white",
-                  winner === 'X' ? "bg-[#f48fb1] text-white" : 
-                  winner === 'O' ? "bg-[#c8e6c9] text-[#2e7d32]" : 
-                  "bg-white text-gray-800"
+                  "p-8 rounded-[2rem] text-center shadow-2xl max-w-sm w-full border-4 border-white",
+                  winner === 'X' ? "bg-[#f48fb1]/90 text-white" : 
+                  winner === 'O' ? "bg-[#c8e6c9]/90 text-[#2e7d32]" : 
+                  "bg-white/90 text-gray-800"
                 )}
               >
-                <Trophy className={cn(
-                  "w-24 h-24 mx-auto mb-6 drop-shadow-lg",
-                  winner === 'X' ? "text-white" : "text-yellow-400"
-                )} />
-                <h2 className="text-4xl font-black mb-4">
-                  {winner === 'Draw' ? 'تعادل!' : `فاز ${winner === 'X' ? teamNames.X : teamNames.O}!`}
-                </h2>
-                <p className={cn(
-                  "text-lg mb-8 font-bold opacity-90",
-                  winner === 'X' ? "text-white" : "text-[#4db6ac]"
-                )}>
-                  {phase === 1 ? (
-                    winner !== 'Draw' && roundWins[winner as Player] >= 2 
-                      ? "مبروك! تم حسم المرحلة الأولى!" 
-                      : "استعد للجولة القادمة!"
-                  ) : phase === 2 ? (
-                    "مبروك! تم حسم المرحلة الثانية!"
+                <h2 className="text-3xl font-black mb-8">
+                  {phase === 3 ? (
+                    `الفريق الفائز: ${winner === 'X' ? teamNames.X : teamNames.O}`
                   ) : (
-                    "مبروك! تم حسم المرحلة الثالثة والنهائية!"
+                    winner === 'Draw' ? 'تعادل!' : `فاز ${winner === 'X' ? teamNames.X : teamNames.O}!`
                   )}
-                </p>
+                </h2>
                 <Button 
                   onClick={() => {
                     if (!isPresenter) return;
                     if (phase === 1) {
+                      if (winner !== 'Draw' && roundWins[winner as Player] >= 2) {
+                        setPhase(2);
+                        setStage2IntroActive(true);
+                      }
                       resetGame();
                     } else if (phase === 2) {
                       setPhase(3);
+                      setStage3IntroActive(true);
                       setWinner(null);
                     } else {
-                      // Final win, maybe reset to start or just close
+                      // Final win, reset
                       setWinner(null);
                       setPhase(1);
                       setGameStarted(false);
@@ -944,7 +1115,7 @@ export default function App() {
                   }}
                   disabled={!isPresenter}
                   className={cn(
-                    "w-full py-6 text-xl rounded-2xl transition-all font-black shadow-lg",
+                    "w-full py-4 text-lg rounded-xl transition-all font-black shadow-lg",
                     winner === 'X' ? "bg-white text-[#f48fb1] hover:bg-white/90" : 
                     winner === 'O' ? "bg-[#4db6ac] text-white hover:bg-[#00897b]" : 
                     "bg-[#4db6ac] text-white",
@@ -976,7 +1147,10 @@ export default function App() {
 
         {/* Next Stage Button */}
         <button
-          onClick={() => setPhase(2)}
+          onClick={() => {
+            setPhase(2);
+            setStage2IntroActive(true);
+          }}
           className="absolute bottom-4 right-12 z-20 bg-[#4db6ac] text-white px-8 py-3 rounded-full text-xl font-black shadow-lg hover:bg-[#00897b] transition-all border-4 border-white"
         >
           المرحلة الثانية
@@ -1008,7 +1182,37 @@ export default function App() {
     className="relative z-10 h-full w-full flex flex-col items-center justify-center p-4 shadow-xl" 
   >
     <div className="relative w-full h-full max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden flex flex-col items-center justify-center">
+        {stage2IntroActive ? (
+          <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
+            <motion.button
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setStage2IntroActive(false)}
+              className="bg-[#f48fb1] text-white px-8 py-3 rounded-full text-xl font-black shadow-[0_4px_0_rgb(194,24,91)] transition-all flex items-center justify-center min-w-[200px] absolute bottom-[18%] left-1/2 -translate-x-1/2"
+            >
+              <Play className="w-6 h-6 ml-2" />
+              ابدأ
+            </motion.button>
+
+            {/* Back Button */}
+            <button
+              onClick={() => setPhase(1)}
+              className="absolute top-12 right-12 z-20 bg-white/80 p-4 rounded-full shadow-lg hover:bg-white transition-all text-[#4db6ac]"
+            >
+              <ArrowRight className="w-8 h-8" />
+            </button>
+          </div>
+        ) : (
         <div className="relative z-10 flex flex-col items-center justify-center w-full h-full p-4">
+          {/* Back Button */}
+          <button
+            onClick={() => setStage2IntroActive(true)}
+            className="absolute top-12 right-12 z-20 bg-white/80 p-4 rounded-full shadow-lg hover:bg-white transition-all text-[#4db6ac]"
+          >
+            <ArrowRight className="w-8 h-8" />
+          </button>
           {/* Stage Area - Centered */}
           <div className="flex flex-col items-center justify-center flex-1 w-full max-w-4xl relative">
             {/* Microphone / Audio Trigger */}
@@ -1027,13 +1231,13 @@ export default function App() {
                   </div>
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => setStage2Score(prev => ({ ...prev, X: Math.max(0, prev.X - 1) }))}
+                      onClick={() => updateStage2Score('X', -1)}
                       className="bg-white/80 w-8 h-8 rounded-full flex items-center justify-center text-[#9575cd] font-bold shadow-md border-2 border-white hover:bg-white"
                     >
                       -
                     </button>
                     <button 
-                      onClick={() => setStage2Score(prev => ({ ...prev, X: prev.X + 1 }))}
+                      onClick={() => updateStage2Score('X', 1)}
                       className="bg-[#f48fb1] w-8 h-8 rounded-full flex items-center justify-center text-white font-bold shadow-md border-2 border-white hover:scale-110 transition-transform"
                     >
                       +
@@ -1053,13 +1257,13 @@ export default function App() {
                   </div>
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => setStage2Score(prev => ({ ...prev, O: Math.max(0, prev.O - 1) }))}
+                      onClick={() => updateStage2Score('O', -1)}
                       className="bg-white/80 w-8 h-8 rounded-full flex items-center justify-center text-[#9575cd] font-bold shadow-md border-2 border-white hover:bg-white"
                     >
                       -
                     </button>
                     <button 
-                      onClick={() => setStage2Score(prev => ({ ...prev, O: prev.O + 1 }))}
+                      onClick={() => updateStage2Score('O', 1)}
                       className="bg-[#f48fb1] w-8 h-8 rounded-full flex items-center justify-center text-white font-bold shadow-md border-2 border-white hover:scale-110 transition-transform"
                     >
                       +
@@ -1072,7 +1276,7 @@ export default function App() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  triggerAudio(stage2Questions[stage2Index].audioUrl);
+                  triggerAudio(stage2Questions[stage2QuestionOrder[stage2Index]].audioUrl);
                   setStage2ShowOptions(true);
                 }}
                 className="w-40 h-40 md:w-56 md:h-56 bg-[#f48fb1] rounded-full flex items-center justify-center cursor-pointer border-8 border-[#9575cd] relative transition-all"
@@ -1125,7 +1329,7 @@ export default function App() {
             </div>
 
             {/* Options Area - Positioned closer to the label */}
-            <div className="absolute bottom-[7%] left-0 right-0 h-[35%] flex items-center justify-center">
+            <div className="absolute bottom-[5%] left-0 right-0 h-[38%] flex items-center justify-center">
               <AnimatePresence mode="wait">
                 {stage2ShowOptions ? (
                   <motion.div 
@@ -1133,18 +1337,64 @@ export default function App() {
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -50, opacity: 0 }}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full px-4"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full px-6 max-w-4xl"
                   >
-                    {stage2Questions[stage2Index].options.map((opt, i) => (
+                    {stage2Questions[stage2QuestionOrder[stage2Index]].options.map((opt, i) => (
                       <motion.button
                         key={i}
-                        whileHover={{ scale: 1.05, backgroundColor: '#fce4ec' }}
-                        whileTap={{ scale: 0.95 }}
-                        className="py-4 px-6 text-xl font-black rounded-[1.5rem] bg-[#f48fb1] text-[#9575cd] shadow-xl border-4 border-white transition-all"
+                        disabled={!isPresenter || stage2Feedback !== null}
+                        whileHover={isPresenter && !stage2Feedback ? { scale: 1.02, backgroundColor: '#fce4ec' } : {}}
+                        whileTap={isPresenter && !stage2Feedback ? { scale: 0.98 } : {}}
+                        onClick={() => handleStage2Answer(i)}
+                        className={cn(
+                          "py-3 px-4 text-lg md:text-xl font-black rounded-[1.2rem] shadow-lg border-4 transition-all relative overflow-hidden",
+                          !stage2Feedback ? "bg-[#f48fb1] text-[#9575cd] border-white" : "",
+                          stage2Feedback?.index === i ? (
+                            stage2Feedback.isCorrect 
+                              ? "bg-green-500 text-white border-green-200 shadow-[0_0_15px_rgba(34,197,94,0.5)]" 
+                              : "bg-red-500 text-white border-red-200 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                          ) : (
+                            stage2Feedback ? "opacity-40 grayscale bg-gray-200 text-gray-500 border-gray-300" : ""
+                          )
+                        )}
                       >
-                        {opt}
+                        <div className="flex flex-col items-center">
+                          {opt}
+                          {stage2Feedback?.index === i && (
+                            <motion.span 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="text-xs mt-1 font-bold flex flex-col items-center"
+                            >
+                              <span>{stage2Feedback.isCorrect ? "إجابة صحيحة" : "إجابة خاطئة"}</span>
+                              {stage2Feedback.isCorrect && (
+                                <span className="text-[10px] opacity-80 mt-0.5">
+                                  ( أضف نقطه للفريق الذي أجاب أولاً )
+                                </span>
+                              )}
+                            </motion.span>
+                          )}
+                        </div>
                       </motion.button>
                     ))}
+
+                    <AnimatePresence>
+                      {stage2Feedback && isPresenter && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                          className="col-span-1 md:col-span-2 flex justify-center mt-2"
+                        >
+                          <button
+                            onClick={handleNextStage2Question}
+                            className="bg-white text-[#9575cd] px-8 py-2 rounded-full text-xl font-black shadow-xl hover:bg-gray-100 transition-all border-4 border-[#9575cd] flex items-center gap-2"
+                          >
+                            السؤال التالي <ArrowRight className="w-6 h-6" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 ) : null}
               </AnimatePresence>
@@ -1152,7 +1402,10 @@ export default function App() {
 
             {/* Next Stage Button */}
             <button
-              onClick={() => setPhase(3)}
+              onClick={() => {
+                setPhase(3);
+                setStage3IntroActive(true);
+              }}
               className="absolute bottom-4 right-12 z-20 bg-[#9575cd] text-white px-8 py-3 rounded-full text-xl font-black shadow-lg hover:bg-[#7e57c2] transition-all border-4 border-white"
             >
               المرحلة الثالثة
@@ -1177,22 +1430,56 @@ export default function App() {
             </button>
           </div>
         </div>
+      )}
     </div>
   </motion.div>
-) : phase === 3 && gameStarted && setupComplete && introComplete ? (
-  <motion.div
+) : phase === 3 ? (
+  <motion.div 
     key="stage3"
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     transition={{ duration: 0.15 }}
-    className="relative z-10 h-full w-full flex flex-col items-center justify-center p-4"
+    className="relative z-10 h-full w-full flex flex-col items-center justify-center shadow-xl" 
   >
-    <div className="relative w-full h-full max-w-6xl mx-auto flex flex-col items-center justify-center">
+    <div className="relative w-full h-full max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden">
+        {stage3IntroActive ? (
+          <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
+            <motion.button
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setStage3IntroActive(false)}
+              className="bg-[#f48fb1] text-white px-8 py-3 rounded-full text-xl font-black shadow-[0_4px_0_rgb(194,24,91)] transition-all flex items-center justify-center min-w-[200px] absolute bottom-[18%] left-1/2 -translate-x-1/2"
+            >
+              <Play className="w-6 h-6 ml-2" />
+              ابدأ
+            </motion.button>
+
+            {/* Back Button */}
+            <button
+              onClick={() => {
+                setPhase(2);
+                setStage2IntroActive(true);
+              }}
+              className="absolute top-12 right-12 z-20 bg-white/80 p-4 rounded-full shadow-lg hover:bg-white transition-all text-[#4db6ac]"
+            >
+              <ArrowRight className="w-8 h-8" />
+            </button>
+          </div>
+        ) : (
+        <div className="relative z-10 flex flex-col items-center justify-center w-full h-full p-4">
+          <button
+            onClick={() => setStage3IntroActive(true)}
+            className="absolute top-12 right-12 z-20 bg-white/80 p-4 rounded-full shadow-lg hover:bg-white transition-all text-[#9575cd]"
+          >
+            <ArrowRight className="w-8 h-8" />
+          </button>
       {/* Header */}
-      <div className="absolute top-8 left-0 right-0 flex justify-center">
+      <div className="mt-8 flex justify-center">
         <div className="bg-[#f48fb1] px-8 py-3 rounded-full border-4 border-[#4db6ac] shadow-2xl">
-          <h2 className="text-2xl font-black text-white">المرحلة الثالثة: سباق التخرج</h2>
+          <h2 className="text-2xl font-black text-white italic drop-shadow-md">سباق التخرج</h2>
         </div>
       </div>
 
@@ -1269,14 +1556,24 @@ export default function App() {
       <div className="mt-12">
         <Button 
           onClick={() => {
+            triggerAudio("https://www.soundjay.com/buttons/sounds/button-21.mp3");
             const available = stage3Questions.filter(q => {
               const isUsed = usedQuestions.includes(q.id);
-              const isCorrectTeam = !q.team || q.team === currentPlayer;
+              // Strictly match team for Phase 3
+              const isCorrectTeam = q.team === currentPlayer;
               return !isUsed && isCorrectTeam;
             });
-            const q = available.length > 0 ? available[0] : stage3Questions[0];
-            setStage3CurrentQuestion(q);
-            setShowStage3Question(true);
+            
+            if (available.length > 0) {
+              const q = available[0];
+              setStage3CurrentQuestion(q);
+              // Mark as used IMMEDIATELY so it never appears for the other team
+              setUsedQuestions(prev => [...prev, q.id]);
+              setShowStage3Question(true);
+            } else {
+              // Fallback if no questions left for this specific team
+              alert("انتهت الأسئلة المخصصة لهذا الفريق!");
+            }
           }}
           className={cn(
             "text-white text-2xl font-black px-12 py-8 rounded-3xl shadow-2xl border-4 border-white transition-all duration-300",
@@ -1291,7 +1588,10 @@ export default function App() {
 
       {/* Back Button */}
       <button
-        onClick={() => setPhase(2)}
+        onClick={() => {
+          setPhase(2);
+          setStage2IntroActive(true);
+        }}
         className="absolute top-12 right-12 z-20 bg-white/80 p-4 rounded-full shadow-lg hover:bg-white transition-all text-[#4db6ac]"
       >
         <ArrowRight className="w-8 h-8" />
@@ -1306,6 +1606,7 @@ export default function App() {
         {isFullscreen ? <Minimize className="w-8 h-8" /> : <Maximize className="w-8 h-8" />}
       </button>
     </div>
+  )}
 
     {/* Stage 3 Question Modal */}
     <Dialog open={showStage3Question} onOpenChange={setShowStage3Question}>
@@ -1337,7 +1638,7 @@ export default function App() {
                   currentPlayer === 'X' ? "bg-[#f48fb1]" : "bg-[#4db6ac]"
                 )}
                 initial={{ height: "100%" }}
-                animate={{ height: `${(stage3Timer / 20) * 100}%` }}
+                animate={{ height: `${(stage3Timer / 40) * 100}%` }}
                 transition={{ duration: 1, ease: "linear" }}
               />
               <span className={cn(
@@ -1366,9 +1667,25 @@ export default function App() {
             </div>
           )}
           {!stage3CurrentQuestion?.imageUrl && (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-xl font-black text-gray-800 text-center leading-relaxed">
-                {stage3CurrentQuestion?.text}
+            <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full">
+              {stage3CurrentQuestion?.text.includes('اكمل المثل') && (
+                <motion.div 
+                  animate={{ x: [-2, 2, -2] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  className={cn(
+                  "px-8 py-2 rounded-full text-lg font-black shadow-lg border-4 border-white mb-4",
+                  currentPlayer === 'X' ? "bg-[#f48fb1] text-white" : "bg-[#4db6ac] text-white"
+                )}>
+                  ✨ أكمل المثل ✨
+                </motion.div>
+              )}
+              <p 
+                dir="rtl"
+                className={cn(
+                "text-3xl md:text-4xl font-black text-right leading-relaxed px-8 transition-colors break-words w-full",
+                currentPlayer === 'X' ? "text-[#f48fb1]" : "text-[#4db6ac]"
+              )}>
+                {stage3CurrentQuestion?.text.replace('اكمل المثل: ', '').replace('أكمل المثل: ', '')}
               </p>
             </div>
           )}
@@ -1378,6 +1695,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => {
+                    triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
                     const newPos = Math.min(19, stage3Positions[currentPlayer] + 1);
                     setStage3Positions(prev => ({
                       ...prev,
@@ -1391,7 +1709,6 @@ export default function App() {
                       setWinner(currentPlayer);
                     }
                     
-                    setUsedQuestions(prev => [...prev, stage3CurrentQuestion.id]);
                     setShowStage3Question(false);
 
                     if (newStreak === 3) {
@@ -1406,6 +1723,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
+                    triggerAudio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
                     setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
                     setShowStage3Question(false);
                     setShowError(true);
@@ -1439,7 +1757,6 @@ export default function App() {
                           setWinner(currentPlayer);
                         }
                         
-                        setUsedQuestions(prev => [...prev, stage3CurrentQuestion.id]);
                         setShowStage3Question(false);
 
                         if (newStreak === 3) {
@@ -1508,7 +1825,7 @@ export default function App() {
                       currentPlayer === 'X' ? "bg-[#f48fb1]" : "bg-[#4db6ac]"
                     )}
                     initial={{ height: "100%" }}
-                    animate={{ height: `${(stage3Timer / 20) * 100}%` }}
+                    animate={{ height: `${(stage3Timer / 40) * 100}%` }}
                     transition={{ duration: 1, ease: "linear" }}
                   />
                   <span className={cn(
@@ -1534,7 +1851,7 @@ export default function App() {
                       currentPlayer === 'X' ? "bg-[#f48fb1]" : "bg-[#4db6ac]"
                     )}
                     initial={{ width: "100%" }}
-                    animate={{ width: `${(stage3Timer / 20) * 100}%` }}
+                    animate={{ width: `${(stage3Timer / 40) * 100}%` }}
                     transition={{ duration: 1, ease: "linear" }}
                   />
                   <span className="font-black text-sm z-10">الوقت:</span>
@@ -1604,9 +1921,10 @@ export default function App() {
         </div>
       </DialogContent>
     </Dialog>
-    </motion.div>
-    ) : null}
-    </AnimatePresence>
-    </div>
-  );
+  </div>
+</motion.div>
+) : null}
+</AnimatePresence>
+</div>
+);
 }

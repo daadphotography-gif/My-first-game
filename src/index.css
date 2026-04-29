@@ -5,10 +5,18 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@font-face {
+  font-family: 'GraphicSchool';
+  src: url('https://dl.dropboxusercontent.com/scl/fi/hvpkuipaq79fdvfh14d7b/GraphicSchool-Regular.ttf?rlkey=9keifdx0n3neufa08o0ktdfxf&st=pgkw8kwm&raw=1') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-puffy: 'Baloo Bhaijaan 2', cursive;
+    --font-graphicschool: 'GraphicSchool', sans-serif;
     --font-sans: 'Inter', 'Baloo Bhaijaan 2', sans-serif;
     --font-serif: 'Libre Baskerville', serif;
     --font-heading: 'Inter', 'Baloo Bhaijaan 2', sans-serif;
