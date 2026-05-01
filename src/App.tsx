@@ -332,7 +332,7 @@ export default function App() {
   // Detect screen size
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerHeight > window.innerWidth);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -990,49 +990,35 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/10 px-4"
+            className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40 px-4 backdrop-blur-md"
           >
             <motion.div
               initial={{ scale: 0.5, y: -20 }}
-              animate={{ scale: 1, y: -80 }}
-              className="bg-gradient-to-br from-[#fce4ec] to-[#e0f2f1] p-8 md:p-10 rounded-[3rem] shadow-[0_20px_50px_rgba(77,182,172,0.3)] border-8 border-white flex flex-col items-center gap-6 max-w-3xl w-full text-center relative overflow-hidden"
+              animate={{ scale: 1, y: 0 }}
+              className="bg-gradient-to-br from-[#fce4ec] to-[#e0f2f1] p-8 md:p-10 rounded-[3rem] shadow-[0_20px_50px_rgba(77,182,172,0.3)] border-8 border-white flex flex-col items-center gap-6 max-w-2xl w-full text-center relative overflow-hidden"
             >
-              {/* Decorative elements */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#f48fb1]/30 rounded-full blur-xl" />
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#4db6ac]/30 rounded-full blur-xl" />
-              
               <div className="flex items-center gap-6 relative z-10 w-full justify-center">
                 <motion.div
                   animate={{ rotate: [0, 10, -10, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-[#4db6ac]"
+                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border border-[#4db6ac]"
                 >
                   <Trophy className="w-10 h-10 text-[#4db6ac]" />
                 </motion.div>
 
                 <div className="space-y-1 text-right">
                   <h1 className="text-3xl md:text-5xl font-black text-[#4db6ac] drop-shadow-sm">
-                    بطل اللعبة النهائي
+                    الفائز بالمرحلة الثالثة
                   </h1>
                   <div className="py-3 px-8 bg-white rounded-2xl shadow-inner border-2 border-[#f48fb1]/20 inline-block">
                     <span className="text-2xl md:text-4xl font-black text-[#f48fb1]">
-                      {(() => {
-                        const counts = { X: 0, O: 0 };
-                        if (stageWinners[1]) counts[stageWinners[1]]++;
-                        if (stageWinners[2]) counts[stageWinners[2]]++;
-                        if (stageWinners[3]) counts[stageWinners[3]]++;
-                        return counts.X >= 2 ? teamNames.X : teamNames.O;
-                      })()}
+                      {stageWinners[3] || 'لا يوجد فائز'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 w-full justify-center mt-2">
-                <p className="text-lg font-bold text-[#4db6ac] bg-white/70 px-6 py-2 rounded-full border-2 border-white/50 shadow-sm">
-                  لقد فاز فريقكم بمرحلتين من أصل ثلاث مراحل 🎉
-                </p>
-
+              <div className="relative z-10 flex flex-col items-center gap-6 w-full justify-center mt-2">
                 <button
                   onClick={() => {
                     localStorage.clear();
@@ -1287,7 +1273,7 @@ export default function App() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-3 gap-3 bg-white/30 p-3 rounded-[2rem] shadow-2xl border border-white/50"
+            className="grid grid-cols-3 gap-3 bg-[#e8f5e9]/90 p-4 rounded-[2rem] shadow-2xl border-4 border-[#fce4ec]"
           >
             {board.map((cell, i) => (
               <motion.button
@@ -1300,8 +1286,8 @@ export default function App() {
                 onClick={() => handleCellClick(i)}
                 disabled={!!cell || !!winner || wrongFeedback}
                 className={cn(
-                  "w-20 h-20 md:w-28 md:h-28 rounded-[1.2rem] flex items-center justify-center text-3xl md:text-5xl transition-colors duration-300",
-                  cell ? "bg-white shadow-inner" : "bg-white/80 hover:bg-white shadow-lg",
+                  "w-20 h-20 md:w-28 md:h-28 rounded-[1.5rem] flex items-center justify-center text-3xl md:text-5xl transition-colors duration-300 border-2 border-[#f8bbd0]",
+                  cell ? "bg-[#c8e6c9] shadow-inner" : "bg-[#e8f5e9] hover:bg-[#c8e6c9] shadow-lg",
                   !cell && !winner && "hover:shadow-2xl cursor-pointer"
                 )}
               >
@@ -2156,7 +2142,8 @@ export default function App() {
                     if (newPos === 19) {
                       setWinner(currentPlayer);
                       setStageWinners(prev => ({ ...prev, 3: currentPlayer }));
-                      setShowStageVictory({ phase: 3, winner: currentPlayer });
+                      setShowFinalResults(true);
+                      triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
                     }
                     
                     setCorrectFeedback(true);
@@ -2206,7 +2193,8 @@ export default function App() {
                         if (newPos === 19) {
                           setWinner(currentPlayer);
                           setStageWinners(prev => ({ ...prev, 3: currentPlayer }));
-                          setShowStageVictory({ phase: 3, winner: currentPlayer });
+                          setShowFinalResults(true);
+                          triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
                         }
                         
                         setCorrectFeedback(true);
@@ -2375,7 +2363,8 @@ export default function App() {
                 if (newPos === 19) {
                   setWinner(currentPlayer);
                   setStageWinners(prev => ({ ...prev, 3: currentPlayer }));
-                  setShowStageVictory({ phase: 3, winner: currentPlayer });
+                  setShowFinalResults(true);
+                  triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
                 }
                 setShowStreakBonus(false);
                 setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
