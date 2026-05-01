@@ -132,24 +132,24 @@ function SpinningWheel({ onFinish, teamNames, triggerAudio }: { onFinish: (winne
 
 const BACKGROUNDS = {
   WIDE: {
-    start: "https://www.dropbox.com/scl/fi/g5i22vcxp6ymsykhzw4ff/Photo-11-04-2026-7-54-55-AM.jpg?rlkey=sg4bsp8r42kj58qmdbsbzkxfn&st=803zg5qm&raw=1",
-    intro: "https://www.dropbox.com/scl/fi/7uciimcp5ppj3d3hqni95/Photo-12-04-2026-11-25-57-PM.jpg?rlkey=bw14grx4tpxq8xegf1rpjnyso&st=fqe89yho&raw=1",
-    game: "https://www.dropbox.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&st=2k8t0k7z&raw=1",
-    stage2: "https://www.dropbox.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&st=qaqparq7&raw=1",
-    stage2Intro: "https://www.dropbox.com/scl/fi/s4e53lifdlnhlr68k6ty4/Photo-27-04-2026-12-58-25-PM-1.png?rlkey=zhaq46c87n286sarb5txrdbq7&st=lh9swevu&raw=1",
-    stage3: "https://www.dropbox.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&st=90tgsqog&raw=1",
-    stage3Intro: "https://dl.dropboxusercontent.com/scl/fi/9yz53ntrv0962iziw997b/Photo-01-05-2026-3-39-05-PM.jpg?rlkey=jdidm11tj8wqvwcxgdsyka83o&st=m923uc09&raw=1",
-    victory: "https://www.dropbox.com/scl/fi/qhvunsimuuxgods1nivlj/Photo-27-04-2026-12-58-25-PM-2.png?rlkey=rar0qkko9gexkk8x6g0u86mtw&st=h65qog0o&raw=1"
+    start: "https://dl.dropboxusercontent.com/scl/fi/g5i22vcxp6ymsykhzw4ff/Photo-11-04-2026-7-54-55-AM.jpg?rlkey=sg4bsp8r42kj58qmdbsbzkxfn&raw=1",
+    intro: "https://dl.dropboxusercontent.com/scl/fi/7uciimcp5ppj3d3hqni95/Photo-12-04-2026-11-25-57-PM.jpg?rlkey=bw14grx4tpxq8xegf1rpjnyso&raw=1",
+    game: "https://dl.dropboxusercontent.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&raw=1",
+    stage2: "https://dl.dropboxusercontent.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&raw=1",
+    stage2Intro: "https://dl.dropboxusercontent.com/scl/fi/s4e53lifdlnhlr68k6ty4/Photo-27-04-2026-12-58-25-PM-1.png?rlkey=zhaq46c87n286sarb5txrdbq7&raw=1",
+    stage3: "https://dl.dropboxusercontent.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&raw=1",
+    stage3Intro: "https://dl.dropboxusercontent.com/scl/fi/9yz53ntrv0962iziw997b/Photo-01-05-2026-3-39-05-PM.jpg?rlkey=jdidm11tj8wqvwcxgdsyka83o&raw=1",
+    victory: "https://dl.dropboxusercontent.com/scl/fi/qhvunsimuuxgods1nivlj/Photo-27-04-2026-12-58-25-PM-2.png?rlkey=rar0qkko9gexkk8x6g0u86mtw&raw=1"
   },
   MOBILE: {
-    start: "https://www.dropbox.com/scl/fi/mvp9rwsqoopwoh1k4xk02/Photo-27-04-2026-5-58-14-PM.jpg?rlkey=d6emzuspr0knpyxkkt0oe6xxu&st=olvq6hpk&raw=1",
-    intro: "https://www.dropbox.com/scl/fi/1oldkjyo3oryttyj33z8c/Photo-30-04-2026-12-38-56-PM-1.jpg?rlkey=lps6swf1fzg0kcfrnofk1cofu&st=qqj18oco&raw=1",
-    game: "https://www.dropbox.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&st=2k8t0k7z&raw=1",
-    stage2: "https://www.dropbox.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&st=qaqparq7&raw=1",
-    stage2Intro: "https://www.dropbox.com/scl/fi/0by5vbcgwvmszrgg10dkq/Photo-30-04-2026-12-38-56-PM-2.jpg?rlkey=ttna45yylkib07w4t83izem2k&st=4narndax&raw=1",
-    stage3: "https://www.dropbox.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&st=90tgsqog&raw=1",
-    stage3Intro: "https://dl.dropboxusercontent.com/scl/fi/0oozhroofg13owhlrap1a/.jpeg?rlkey=kqf66d1pk8l4lfjp8fwibmd0h&st=2cz5sbyc&raw=1",
-    victory: "https://www.dropbox.com/scl/fi/px0qv8sbj4fs105bhrkxb/Photo-30-04-2026-12-38-56-PM-3.jpg?rlkey=w1udmsd56khgpt1hrix1g0u5b&st=w76t6lq6&raw=1"
+    start: "https://dl.dropboxusercontent.com/scl/fi/mvp9rwsqoopwoh1k4xk02/Photo-27-04-2026-5-58-14-PM.jpg?rlkey=d6emzuspr0knpyxkkt0oe6xxu&raw=1",
+    intro: "https://dl.dropboxusercontent.com/scl/fi/1oldkjyo3oryttyj33z8c/Photo-30-04-2026-12-38-56-PM-1.jpg?rlkey=lps6swf1fzg0kcfrnofk1cofu&raw=1",
+    game: "https://dl.dropboxusercontent.com/scl/fi/vzl9tjyod1xe2ycx50xb8/Photo-12-04-2026-1-28-54-PM.jpg?rlkey=eup7txw2qg9omzsminzgbvhsv&raw=1",
+    stage2: "https://dl.dropboxusercontent.com/scl/fi/0wbcurmx8uw6fb9gml86n/Photo-13-04-2026-5-17-42-AM.jpg?rlkey=8wgtbf2cx8w2ecu31ayr49amr&raw=1",
+    stage2Intro: "https://dl.dropboxusercontent.com/scl/fi/0by5vbcgwvmszrgg10dkq/Photo-30-04-2026-12-38-56-PM-2.jpg?rlkey=ttna45yylkib07w4t83izem2k&raw=1",
+    stage3: "https://dl.dropboxusercontent.com/scl/fi/p1zouzii3g8mklhkppoia/Photo-14-04-2026-4-08-42-AM.jpg?rlkey=d8zlfpcfh30oz5goojejt1owj&raw=1",
+    stage3Intro: "https://dl.dropboxusercontent.com/scl/fi/0oozhroofg13owhlrap1a/.jpeg?rlkey=kqf66d1pk8l4lfjp8fwibmd0h&raw=1",
+    victory: "https://dl.dropboxusercontent.com/scl/fi/px0qv8sbj4fs105bhrkxb/Photo-30-04-2026-12-38-56-PM-3.jpg?rlkey=w1udmsd56khgpt1hrix1g0u5b&raw=1"
   }
 };
 
@@ -263,6 +263,72 @@ export default function App() {
     return isMobile ? BACKGROUNDS.MOBILE[key] : BACKGROUNDS.WIDE[key];
   }, [isMobile]);
 
+  const audioRef = useRef<HTMLVideoElement | null>(null);
+
+  const handlePlayAudio = useCallback((url: string) => {
+    if (!url) return;
+
+    // Always stop text-based question audio when playing a feedback or UI sound
+    if (audioRef.current && (url === CLICK_SOUND || url === CORRECT_SOUND || url === WRONG_SOUND)) {
+      audioRef.current.pause();
+    }
+
+    if (url === CLICK_SOUND) {
+      clickAudio.currentTime = 0;
+      clickAudio.play().catch(() => {});
+      return;
+    }
+
+    if (url === CORRECT_SOUND) {
+      correctAudio.currentTime = 0;
+      correctAudio.play().catch(() => {});
+      return;
+    }
+
+    if (url === WRONG_SOUND) {
+      wrongAudio.currentTime = 0;
+      wrongAudio.play().catch(() => {});
+      return;
+    }
+
+    if (!audioRef.current) return;
+    const video = audioRef.current;
+    
+    // Stop any current playback
+    video.pause();
+    video.currentTime = 0;
+
+    // Direct transformation
+    let processedUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+    if (processedUrl.includes('dropboxusercontent.com') || processedUrl.includes('dropbox.com')) {
+      const urlObj = new URL(processedUrl);
+      urlObj.searchParams.set('raw', '1');
+      urlObj.searchParams.delete('dl');
+      processedUrl = urlObj.toString();
+    }
+    
+    video.src = processedUrl;
+    video.load();
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Silent fail for professional feel; user will naturally click something else later
+        setIsPlaying(false);
+      });
+    }
+  }, []);
+
+  const triggerAudio = useCallback((url: string) => {
+    // 1. Play locally
+    handlePlayAudio(url);
+    
+    // 2. Broadcast to other tabs
+    if (syncChannelRef.current) {
+      syncChannelRef.current.postMessage({ type: 'PLAY_AUDIO', url });
+    }
+  }, [handlePlayAudio]);
+
   // Detect screen size
   useEffect(() => {
     const checkMobile = () => {
@@ -340,58 +406,52 @@ export default function App() {
     return () => clearTimeout(saveTimeout);
   }, [gameStarted, setupComplete, introComplete, teamNames, board, currentPlayer, winner, usedQuestions, phase, round, roundWins, stage2Score, stage2QuestionOrder, stage3Positions, stage2IntroActive, stage3IntroActive, stageWinners]);
 
-  // Shuffle stage 2 questions when entering phase 2
+  // Stabilize stage 2 question order - only shuffle when entering the phase or if empty
   useEffect(() => {
-    if (phase === 2) {
-      setStage2QuestionOrder(prev => {
-        const shuffled = [...prev].sort(() => Math.random() - 0.5);
-        return shuffled;
-      });
-      // Initial sound for stage 2
+    if (phase === 2 && stage2QuestionOrder.length === 0) {
+      const initialOrder = Array.from({ length: stage2Questions.length }, (_, i) => i);
+      const shuffled = [...initialOrder].sort(() => Math.random() - 0.5);
+      setStage2QuestionOrder(shuffled);
       triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
     }
-  }, [phase]);
+  }, [phase, stage2QuestionOrder.length, triggerAudio]);
 
 
-  const audioRef = useRef<HTMLVideoElement | null>(null);
-
-  // Timer countdown effect
+  // More efficient Timer countdown effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerActive && stage3Timer > 0 && !isZoomTransitionPaused && !correctFeedback && !wrongFeedback) {
-      interval = setInterval(() => {
-        setStage3Timer(prev => {
-          const newValue = prev - 1;
-          // Play gentle alert at 5 seconds - using handled audio trigger
-          if (newValue === 5) {
-            handlePlayAudio("https://www.soundjay.com/buttons/sounds/beep-07.mp3");
-          }
-          return newValue;
-        });
-      }, 1000);
-    } else if (stage3Timer <= 0 && isTimerActive) {
-      // Just stop timer, don't close modal or auto-fail immediately
-      setIsTimerActive(false);
-      triggerAudio(WRONG_SOUND);
+    if (!isTimerActive || stage3Timer <= 0 || isZoomTransitionPaused || correctFeedback || wrongFeedback) {
+      return;
     }
-    return () => clearInterval(interval);
-  }, [isTimerActive, stage3Timer, currentPlayer, isZoomTransitionPaused, correctFeedback, wrongFeedback]);
 
-    // Reset timer when question opens/closes
-    useEffect(() => {
-      if (showStage3Question) {
-        setStage3Timer(40);
-        setShowStage3Answer(false);
-        // Delay starting the timer for 1.5 seconds to give players time to see the content
-        const startDelay = setTimeout(() => {
-          setIsTimerActive(true);
-        }, 1500);
-        return () => clearTimeout(startDelay);
-      } else {
-        setIsTimerActive(false);
-        setIsZoomTransitionPaused(false);
-      }
-    }, [showStage3Question]);
+    const interval = setInterval(() => {
+      setStage3Timer(prev => {
+        const newValue = prev - 1;
+        if (newValue === 5) {
+          handlePlayAudio("https://www.soundjay.com/buttons/sounds/beep-07.mp3");
+        }
+        if (newValue <= 0) {
+          setIsTimerActive(false);
+          triggerAudio(WRONG_SOUND);
+        }
+        return newValue;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTimerActive, isZoomTransitionPaused, correctFeedback, wrongFeedback, handlePlayAudio, triggerAudio]);
+
+  // Reset timer when question opens/closes
+  useEffect(() => {
+    if (showStage3Question) {
+      setStage3Timer(40);
+      setShowStage3Answer(false);
+      // Start timer immediately
+      setIsTimerActive(true);
+    } else {
+      setIsTimerActive(false);
+      setIsZoomTransitionPaused(false);
+    }
+  }, [showStage3Question]);
 
   // Pause timer briefly when zooming to give time for transition without losing countdown
   useEffect(() => {
@@ -406,69 +466,6 @@ export default function App() {
       };
     }
   }, [showImageZoom, isTimerActive]);
-
-  const handlePlayAudio = useCallback((url: string) => {
-    if (!url) return;
-
-    // Always stop text-based question audio when playing a feedback or UI sound
-    if (audioRef.current && (url === CLICK_SOUND || url === CORRECT_SOUND || url === WRONG_SOUND)) {
-      audioRef.current.pause();
-    }
-
-    if (url === CLICK_SOUND) {
-      clickAudio.currentTime = 0;
-      clickAudio.play().catch(() => {});
-      return;
-    }
-
-    if (url === CORRECT_SOUND) {
-      correctAudio.currentTime = 0;
-      correctAudio.play().catch(() => {});
-      return;
-    }
-
-    if (url === WRONG_SOUND) {
-      wrongAudio.currentTime = 0;
-      wrongAudio.play().catch(() => {});
-      return;
-    }
-
-    if (!audioRef.current) return;
-    const video = audioRef.current;
-    
-    // Stop any current playback
-    video.pause();
-    video.currentTime = 0;
-
-    // Direct transformation
-    let processedUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-    if (processedUrl.includes('dropboxusercontent.com') || processedUrl.includes('dropbox.com')) {
-      const urlObj = new URL(processedUrl);
-      urlObj.searchParams.set('raw', '1');
-      urlObj.searchParams.delete('dl');
-      processedUrl = urlObj.toString();
-    }
-    
-    video.src = processedUrl;
-    video.load();
-
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Silent fail for professional feel; user will naturally click something else later
-        setIsPlaying(false);
-      });
-    }
-  }, []);
-  const triggerAudio = useCallback((url: string) => {
-    // 1. Play locally
-    handlePlayAudio(url);
-    
-    // 2. Broadcast to other tabs
-    if (syncChannelRef.current) {
-      syncChannelRef.current.postMessage({ type: 'PLAY_AUDIO', url });
-    }
-  }, [handlePlayAudio]);
 
   // Sync state between tabs
   useEffect(() => {
@@ -841,93 +838,85 @@ export default function App() {
       </AnimatePresence>
 
       {/* Persistent Background Layer */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="fixed inset-0 z-0 pointer-events-none bg-[#fce4ec]">
         {/* Start & Setup Background */}
         <motion.img 
+          key="bg-start"
           src={getBg('start')}
           alt="Background Start"
           className="absolute inset-0 w-full h-full object-cover"
           animate={{ opacity: !gameStarted || !setupComplete ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           referrerPolicy="no-referrer"
         />
         {/* Intro Background */}
         <motion.img 
+          key="bg-intro"
           src={getBg('intro')}
           alt="Background Intro"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
           animate={{ opacity: gameStarted && setupComplete && !introComplete ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           referrerPolicy="no-referrer"
         />
         {/* Game Background */}
         <motion.img 
+          key="bg-game"
           src={getBg('game')}
           alt="Background Game"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
           animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 1 ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           referrerPolicy="no-referrer"
         />
-        {/* Stage 2 Background - Pastel Stage */}
+        {/* Stage 2 Background */}
         <motion.img
+          key="bg-stage2"
           src={getBg('stage2')}
           alt="Background Stage 2"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
           animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 2 && !stage2IntroActive ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           referrerPolicy="no-referrer"
         />
-        {/* Stage 3 Background - Map/Path */}
+        {/* Stage 3 Background */}
         <motion.img
+          key="bg-stage3"
           src={getBg('stage3')}
           alt="Background Stage 3"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
           animate={{ opacity: gameStarted && setupComplete && introComplete && phase === 3 && !stage3IntroActive && !showFinalResults ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           referrerPolicy="no-referrer"
         />
         {/* Stage 2 Intro Background */}
         <motion.img
+          key="bg-stage2-intro"
           src={getBg('stage2Intro')}
           alt="Background Stage 2 Intro"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
           animate={{ opacity: phase === 2 && stage2IntroActive ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           referrerPolicy="no-referrer"
         />
         {/* Stage 3 Intro Background */}
         <motion.img
+          key="bg-stage3-intro"
           src={getBg('stage3Intro')}
           alt="Background Stage 3 Intro"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
           animate={{ opacity: phase === 3 && stage3IntroActive ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
           referrerPolicy="no-referrer"
         />
         {/* Victory Background */}
         <motion.img 
+          key="bg-victory"
           src={getBg('victory')}
           alt="Final Background"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: showFinalResults ? 1 : 0 }}
-          transition={{ duration: 0.8 }}
-          referrerPolicy="no-referrer"
-        />
-        <motion.img
-          src={getBg('victory')}
-          alt="Background Victory"
-          className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: (!!winner && (phase === 3 || (phase === 2 && winner !== 'Draw' && stage2Index >= stage2Questions.length - 1))) && !showFinalResults ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
+          animate={{ opacity: showFinalResults || (!!winner && phase === 3 && !showFinalResults) ? 1 : 0 }}
+          transition={{ duration: 0.6 }}
           referrerPolicy="no-referrer"
         />
       </div>
@@ -2076,11 +2065,11 @@ export default function App() {
             سؤال لـ {currentPlayer === 'X' ? teamNames.X : teamNames.O}
           </DialogTitle>
           
-          {/* Elegant Timer Design */}
+          {/* Timer Display */}
           <div className="flex justify-center mb-1">
             <div className={cn(
-              "relative h-12 rounded-full flex items-center justify-center overflow-hidden transition-colors duration-300",
-              stage3Timer <= 0 ? "bg-transparent border-none w-auto" : 
+              "relative h-12 rounded-full flex items-center justify-center overflow-hidden transition-all duration-300",
+              stage3Timer <= 0 ? "bg-transparent border-none w-auto shadow-none" : 
               stage3Timer <= 3 ? "border-4 shadow-inner border-red-500 bg-red-50 animate-pulse w-12" : 
               currentPlayer === 'X' ? "border-4 shadow-inner border-[#f48fb1] bg-white w-12" : "border-4 shadow-inner border-[#4db6ac] bg-white w-12"
             )}>
@@ -2097,8 +2086,8 @@ export default function App() {
                 />
               )}
               <span className={cn(
-                "font-black z-10 whitespace-nowrap",
-                stage3Timer <= 0 ? (currentPlayer === 'X' ? "text-[#f48fb1] text-lg" : "text-[#4db6ac] text-lg") :
+                "font-black z-10 whitespace-nowrap drop-shadow-sm",
+                stage3Timer <= 0 ? (currentPlayer === 'X' ? "text-[#f48fb1] text-2xl" : "text-[#4db6ac] text-2xl") :
                 stage3Timer <= 3 ? "text-red-600 text-xl" : 
                 currentPlayer === 'X' ? "text-[#f48fb1] text-xl" : "text-[#4db6ac] text-xl"
               )}>
