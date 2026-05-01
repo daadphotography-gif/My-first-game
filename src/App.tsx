@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Circle, Trophy, RotateCcw, HelpCircle, ArrowRight, ArrowLeft, ChevronRight, Maximize, Minimize, Play, Pause, Volume2, Mic, GraduationCap } from 'lucide-react';
+import { X, Circle, Trophy, RotateCcw, HelpCircle, ArrowRight, ArrowLeft, ChevronRight, Maximize, Minimize, Play, Pause, Volume2, Mic, GraduationCap, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { questions, stage2Questions, stage3Questions, Question } from './data/questions';
 import { Button } from '@/components/ui/button';
@@ -181,6 +181,7 @@ export default function App() {
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [showQuestion, setShowQuestion] = useState(false);
+  const [correctFeedback, setCorrectFeedback] = useState(false);
   const [wrongFeedback, setWrongFeedback] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [correctAnswerIndex, setCorrectAnswerIndex] = useState<number | null>(null);
@@ -357,7 +358,7 @@ export default function App() {
   // Timer countdown effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isTimerActive && stage3Timer > 0 && !isZoomTransitionPaused) {
+    if (isTimerActive && stage3Timer > 0 && !isZoomTransitionPaused && !correctFeedback && !wrongFeedback) {
       interval = setInterval(() => {
         setStage3Timer(prev => {
           const newValue = prev - 1;
@@ -368,20 +369,13 @@ export default function App() {
           return newValue;
         });
       }, 1000);
-    } else if (stage3Timer === 0 && isTimerActive) {
+    } else if (stage3Timer <= 0 && isTimerActive) {
+      // Just stop timer, don't close modal or auto-fail immediately
       setIsTimerActive(false);
-      setShowImageZoom(false); // Close zoom on timeout
-      // Auto-fail on timeout
-      setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
-      setShowStage3Question(false);
-      setWrongFeedback(true);
-      setTimeout(() => {
-        setWrongFeedback(false);
-        setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-      }, 2500);
+      triggerAudio(WRONG_SOUND);
     }
     return () => clearInterval(interval);
-  }, [isTimerActive, stage3Timer, currentPlayer, isZoomTransitionPaused]);
+  }, [isTimerActive, stage3Timer, currentPlayer, isZoomTransitionPaused, correctFeedback, wrongFeedback]);
 
     // Reset timer when question opens/closes
     useEffect(() => {
@@ -639,6 +633,7 @@ export default function App() {
       setCorrectAnswerIndex(answerIndex);
       setSelectedOption(answerIndex);
       triggerAudio(CORRECT_SOUND);
+      setCorrectFeedback(true);
 
       confetti({
         particleCount: 150,
@@ -649,48 +644,52 @@ export default function App() {
 
       const newBoard = [...board];
       newBoard[selectedCell] = currentPlayer;
+      setBoard(newBoard);
       
-      setTimeout(() => {
-        setBoard(newBoard);
-        
-        const gameWinner = checkWinner(newBoard);
-        if (gameWinner) {
-          setWinner(gameWinner);
-          if (gameWinner !== 'Draw') {
-            setRoundWins(prev => ({
-              ...prev,
-              [gameWinner as Player]: prev[gameWinner as Player] + 1
-            }));
-          }
-        } else {
-          setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+      const gameWinner = checkWinner(newBoard);
+      if (gameWinner) {
+        setWinner(gameWinner);
+        if (gameWinner !== 'Draw') {
+          setRoundWins(prev => ({
+            ...prev,
+            [gameWinner as Player]: prev[gameWinner as Player] + 1
+          }));
         }
-        setShowQuestion(false);
-        setCorrectAnswerIndex(null);
-        setSelectedOption(null);
-      }, 2000);
+      }
     } else {
       // Incorrect answer
       setSelectedOption(answerIndex);
       setCorrectAnswerIndex(currentQuestion.correctIndex);
       triggerAudio(WRONG_SOUND);
       setWrongFeedback(true);
-      
-      setTimeout(() => {
-        setShowQuestion(false);
-        setWrongFeedback(false);
-        setCorrectAnswerIndex(null);
-        setSelectedOption(null);
+    }
+  };
+
+  const closeQuestionModal = () => {
+    const isCorrect = correctFeedback;
+    setShowQuestion(false);
+    setCorrectFeedback(false);
+    setWrongFeedback(false);
+    setCorrectAnswerIndex(null);
+    setSelectedOption(null);
+    
+    if (isCorrect) {
+      // Logic after user closes the "Correct" modal
+      const gameWinner = checkWinner(board);
+      if (!gameWinner) {
         setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-      }, 2500);
+      }
+    } else {
+      // Logic after user closes the "Wrong" modal
+      setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
     }
   };
 
   const resetGame = () => {
-    if (winner && winner !== 'Draw') {
-      const winnerWins = roundWins[winner as Player];
-      if (winnerWins >= 2) {
-        setStageWinners(prev => ({ ...prev, 1: winner as Player }));
+    if (winner) {
+      if (round >= 3 && roundWins.X !== roundWins.O) {
+        const finalWinner = roundWins.X > roundWins.O ? 'X' : 'O';
+        setStageWinners(prev => ({ ...prev, 1: finalWinner }));
         setPhase(2);
         setStage2IntroActive(true);
         setRound(1);
@@ -700,17 +699,13 @@ export default function App() {
         setWinner(null);
         setSelectedCell(null);
       } else {
+        // Continuous rounds until tie is broken
         setRound(prev => prev + 1);
         setBoard(Array(9).fill(null));
         setWinner(null);
         setSelectedCell(null);
         if (phase === 1) setShowSpinWheel(true);
       }
-    } else {
-      setBoard(Array(9).fill(null));
-      setWinner(null);
-      setSelectedCell(null);
-      if (phase === 1) setShowSpinWheel(true);
     }
   };
 
@@ -1374,9 +1369,20 @@ export default function App() {
         </motion.button>
 
         {/* Question Dialog */}
-        <Dialog open={showQuestion} onOpenChange={setShowQuestion}>
+        <Dialog open={showQuestion} onOpenChange={(open) => {
+          if (!open) {
+            setShowQuestion(false);
+            setSelectedOption(null);
+            setCorrectAnswerIndex(null);
+            setCorrectFeedback(false);
+            setWrongFeedback(false);
+            setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+          } else {
+            setShowQuestion(true);
+          }
+        }}>
           <DialogContent className={cn(
-            "border-none rounded-[2rem] p-8 max-w-[90vw] md:max-w-md shadow-2xl",
+            "fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] border-none rounded-[2rem] p-8 max-w-[90vw] md:max-w-md shadow-2xl z-[150] outline-none",
             currentPlayer === 'X' ? "bg-[#f48fb1] text-white" : "bg-[#e0f2f1] text-[#4db6ac]"
           )}>
             <DialogHeader>
@@ -1442,51 +1448,67 @@ export default function App() {
           </DialogContent>
         </Dialog>
 
-        {/* Error Overlay */}
+        {/* Feedback Overlay for Correct/Wrong - MANUAL CLOSE ONLY */}
         <AnimatePresence>
-          {wrongFeedback && (
+          {(correctFeedback || wrongFeedback) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
+              className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm"
             >
               <motion.div
-                initial={{ scale: 0, rotate: -45 }}
-                animate={{ 
-                  scale: 1, 
-                  rotate: 0,
-                  transition: { type: "spring", stiffness: 200, damping: 20 }
-                }}
-                exit={{ scale: 1.5, opacity: 0 }}
-                className="relative"
+                initial={{ scale: 0.8, y: 50 }}
+                animate={{ scale: 1, y: 0 }}
+                className={cn(
+                  "bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl border-8 flex flex-col items-center gap-6 max-w-sm w-full text-center relative",
+                  correctFeedback ? "border-green-500" : "border-red-500"
+                )}
               >
-                <div className="relative flex flex-col items-center">
-                  <motion.div
-                    animate={{ 
-                      scale: [1, 1.05, 1],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative"
-                  >
-                    <X 
-                      className="w-80 h-80 md:w-[500px] md:h-[500px] text-[#f48fb1] drop-shadow-[0_0_50px_rgba(244,143,177,1)]" 
-                      strokeWidth={8} 
-                      style={{ 
-                        filter: 'blur(0.5px)'
-                      }}
-                    />
-                    <div className="absolute inset-0 blur-xl bg-[#f48fb1]/30 rounded-full scale-110" />
-                  </motion.div>
-                  <motion.p 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-white text-5xl md:text-7xl font-black mt-8 drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"
-                  >
-                    إجابة خاطئة
-                  </motion.p>
+                <button 
+                  onClick={() => {
+                    if (phase === 1) {
+                      closeQuestionModal();
+                    } else if (phase === 3) {
+                      const isCorrect = correctFeedback;
+                      setCorrectFeedback(false);
+                      setWrongFeedback(false);
+                      setShowStage3Question(false);
+                      
+                      if (isCorrect) {
+                        const newStreak = streaks[currentPlayer];
+                        if (newStreak === 3) {
+                          setShowStreakBonus(true);
+                        } else {
+                          setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+                        }
+                      } else {
+                        setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+                      }
+                    }
+                  }}
+                  className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors shadow-md"
+                >
+                  <X className="w-8 h-8 text-gray-800" />
+                </button>
+
+                <div className={cn(
+                  "w-24 h-24 rounded-full flex items-center justify-center text-white text-5xl shadow-inner",
+                  correctFeedback ? "bg-green-500" : "bg-red-500"
+                )}>
+                  {correctFeedback ? <Check className="w-14 h-14" /> : <X className="w-14 h-14" />}
                 </div>
+
+                <h3 className={cn(
+                  "text-4xl font-black",
+                  correctFeedback ? "text-green-600" : "text-red-600"
+                )}>
+                  {correctFeedback ? "إجابة صحيحة!" : "للأسف، إجابة خاطئة"}
+                </h3>
+                
+                <p className="text-gray-500 font-bold">
+                  اضغط على زر (X) للإغلاق والمتابعة
+                </p>
               </motion.div>
             </motion.div>
           )}
@@ -2030,9 +2052,18 @@ export default function App() {
   ) : null}
 
     {/* Stage 3 Question Modal */}
-    <Dialog open={showStage3Question} onOpenChange={setShowStage3Question}>
+    <Dialog open={showStage3Question} onOpenChange={(open) => {
+      if (!open) {
+        // If closing manually
+        setShowStage3Question(false);
+        setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
+        setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+      } else {
+        setShowStage3Question(true);
+      }
+    }}>
       <DialogContent className={cn(
-        "w-[90vw] max-w-md h-auto max-h-[90vh] border-8 rounded-[3rem] p-4 sm:p-5 transition-colors duration-500 flex flex-col",
+        "fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] w-[90vw] max-w-md h-auto max-h-[90vh] border-8 rounded-[3rem] p-4 sm:p-5 transition-colors duration-500 flex flex-col z-[150] outline-none",
         currentPlayer === 'X' 
           ? "bg-[#fce4ec]/95 border-[#4db6ac]" 
           : "bg-[#e0f2f1]/95 border-[#f48fb1]"
@@ -2048,29 +2079,34 @@ export default function App() {
           {/* Elegant Timer Design */}
           <div className="flex justify-center mb-1">
             <div className={cn(
-              "relative w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-inner overflow-hidden transition-colors duration-300",
-              stage3Timer <= 3 ? "border-red-500 bg-red-50 animate-pulse" : 
-              currentPlayer === 'X' ? "border-[#f48fb1] bg-white" : "border-[#4db6ac] bg-white"
+              "relative h-12 rounded-full flex items-center justify-center overflow-hidden transition-colors duration-300",
+              stage3Timer <= 0 ? "bg-transparent border-none w-auto" : 
+              stage3Timer <= 3 ? "border-4 shadow-inner border-red-500 bg-red-50 animate-pulse w-12" : 
+              currentPlayer === 'X' ? "border-4 shadow-inner border-[#f48fb1] bg-white w-12" : "border-4 shadow-inner border-[#4db6ac] bg-white w-12"
             )}>
-              <motion.div 
-                className={cn(
-                  "absolute inset-0 opacity-10",
-                  stage3Timer <= 3 ? "bg-red-500" : 
-                  currentPlayer === 'X' ? "bg-[#f48fb1]" : "bg-[#4db6ac]"
-                )}
-                initial={{ height: "100%" }}
-                animate={{ height: `${(stage3Timer / 40) * 100}%` }}
-                transition={{ duration: 1, ease: "linear" }}
-              />
+              {stage3Timer > 0 && (
+                <motion.div 
+                  className={cn(
+                    "absolute inset-0 opacity-10",
+                    stage3Timer <= 3 ? "bg-red-500" : 
+                    currentPlayer === 'X' ? "bg-[#f48fb1]" : "bg-[#4db6ac]"
+                  )}
+                  initial={{ height: "100%" }}
+                  animate={{ height: `${(stage3Timer / 40) * 100}%` }}
+                  transition={{ duration: 1, ease: "linear" }}
+                />
+              )}
               <span className={cn(
-                "text-xl font-black z-10",
-                stage3Timer <= 3 ? "text-red-600" : 
-                currentPlayer === 'X' ? "text-[#f48fb1]" : "text-[#4db6ac]"
+                "font-black z-10 whitespace-nowrap",
+                stage3Timer <= 0 ? (currentPlayer === 'X' ? "text-[#f48fb1] text-lg" : "text-[#4db6ac] text-lg") :
+                stage3Timer <= 3 ? "text-red-600 text-xl" : 
+                currentPlayer === 'X' ? "text-[#f48fb1] text-xl" : "text-[#4db6ac] text-xl"
               )}>
-                {stage3Timer}
+                {stage3Timer <= 0 ? "انتهى الوقت!" : stage3Timer}
               </span>
             </div>
           </div>
+
         </DialogHeader>
         <div className="flex-1 flex flex-col min-h-0 space-y-2 overflow-visible">
           {stage3CurrentQuestion?.imageUrl && (
@@ -2115,6 +2151,7 @@ export default function App() {
             {stage3CurrentQuestion?.isPresenterOnly ? (
               <div className="grid grid-cols-2 gap-4 w-full">
                 <button
+                  disabled={stage3Timer <= 0}
                   onClick={() => {
                     triggerAudio(CLICK_SOUND);
                     triggerAudio(CORRECT_SOUND);
@@ -2133,40 +2170,39 @@ export default function App() {
                       setShowStageVictory({ phase: 3, winner: currentPlayer });
                     }
                     
-                    setShowStage3Question(false);
-
-                    if (newStreak === 3) {
-                      setShowStreakBonus(true);
-                    } else {
-                      setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-                    }
+                    setCorrectFeedback(true);
                   }}
-                  className="py-2 px-2 text-sm font-black rounded-2xl bg-[#4db6ac] text-white border-2 border-white shadow-lg hover:bg-[#00897b] transition-all"
+                  className={cn(
+                    "py-2 px-2 text-sm font-black rounded-2xl text-white border-2 border-white shadow-lg transition-all",
+                    stage3Timer <= 0 ? "bg-gray-400 opacity-50 cursor-not-allowed" : "bg-[#4db6ac] hover:bg-[#00897b]"
+                  )}
                 >
                   إجابة صحيحة
                 </button>
                 <button
+                  disabled={stage3Timer <= 0}
                   onClick={() => {
                     triggerAudio(CLICK_SOUND);
                     triggerAudio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
                     setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
-                    setShowStage3Question(false);
                     setWrongFeedback(true);
-                    setTimeout(() => {
-                      setWrongFeedback(false);
-                      setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-                    }, 2500);
                   }}
-                  className="py-2 px-2 text-sm font-black rounded-2xl bg-[#f48fb1] text-white border-2 border-white shadow-lg hover:bg-[#f06292] transition-all"
+                  className={cn(
+                    "py-2 px-2 text-sm font-black rounded-2xl text-white border-2 border-white shadow-lg transition-all",
+                    stage3Timer <= 0 ? "bg-gray-400 opacity-50 cursor-not-allowed" : "bg-[#f48fb1] hover:bg-[#f06292]"
+                  )}
                 >
                   إجابة خاطئة
                 </button>
+
+
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-2 w-full">
                 {stage3CurrentQuestion?.options.map((opt, i) => (
                   <button
                     key={i}
+                    disabled={stage3Timer <= 0}
                     onClick={() => {
                       if (i === stage3CurrentQuestion.correctIndex) {
                         const newPos = Math.min(19, stage3Positions[currentPlayer] + 1);
@@ -2184,25 +2220,15 @@ export default function App() {
                           setShowStageVictory({ phase: 3, winner: currentPlayer });
                         }
                         
-                        setShowStage3Question(false);
-
-                        if (newStreak === 3) {
-                          setShowStreakBonus(true);
-                        } else {
-                          setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-                        }
+                        setCorrectFeedback(true);
                       } else {
                         setStreaks(prev => ({ ...prev, [currentPlayer]: 0 }));
-                        setShowStage3Question(false);
                         setWrongFeedback(true);
-                        setTimeout(() => {
-                          setWrongFeedback(false);
-                          setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-                        }, 2500);
                       }
                     }}
                     className={cn(
                       "py-2 px-4 text-base font-black rounded-xl border-2 border-white shadow-md transition-all",
+                      stage3Timer <= 0 && "opacity-50 cursor-not-allowed",
                       currentPlayer === 'X' 
                         ? (showStage3Answer && i === stage3CurrentQuestion.correctIndex ? "bg-[#4db6ac] text-white" : "bg-white text-[#f48fb1] hover:bg-[#f48fb1] hover:text-white") 
                         : (showStage3Answer && i === stage3CurrentQuestion.correctIndex ? "bg-[#f48fb1] text-white" : "bg-white text-[#4db6ac] hover:bg-[#4db6ac] hover:text-white")
@@ -2211,6 +2237,8 @@ export default function App() {
                     {opt}
                   </button>
                 ))}
+
+
               </div>
             )}
 
