@@ -445,11 +445,15 @@ export default function App() {
     if (showStage3Question) {
       setStage3Timer(40);
       setShowStage3Answer(false);
+      setCorrectFeedback(false);
+      setWrongFeedback(false);
       // Start timer immediately
       setIsTimerActive(true);
     } else {
       setIsTimerActive(false);
       setIsZoomTransitionPaused(false);
+      setCorrectFeedback(false);
+      setWrongFeedback(false);
     }
   }, [showStage3Question]);
 
