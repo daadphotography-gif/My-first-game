@@ -915,7 +915,7 @@ export default function App() {
           src={getBg('victory')}
           alt="Final Background"
           className="absolute inset-0 w-full h-full object-cover"
-          animate={{ opacity: showFinalResults || (!!winner && phase === 3 && !showFinalResults) ? 1 : 0 }}
+          animate={{ opacity: showFinalResults ? 1 : 0 }}
           transition={{ duration: 0.6 }}
           referrerPolicy="no-referrer"
         />
@@ -990,44 +990,48 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40 px-4 backdrop-blur-md"
+            className="fixed inset-0 z-[1200] flex items-center justify-center px-4"
           >
             <motion.div
-              initial={{ scale: 0.5, y: -20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-gradient-to-br from-[#fce4ec] to-[#e0f2f1] p-8 md:p-10 rounded-[3rem] shadow-[0_20px_50px_rgba(77,182,172,0.3)] border-8 border-white flex flex-col items-center gap-6 max-w-2xl w-full text-center relative overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center gap-4 w-full text-center relative max-w-4xl h-full justify-center"
             >
-              <div className="flex items-center gap-6 relative z-10 w-full justify-center">
+              <div className="flex flex-col items-center gap-4 relative z-10 w-full justify-center">
                 <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border border-[#4db6ac]"
+                  animate={{ 
+                    rotate: [0, 5, -5, 0],
+                    scale: [1, 1.05, 1]
+                  }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="w-16 h-16 md:w-16 md:h-16 bg-white/10 rounded-full flex items-center justify-center shadow-xl border-2 border-white/20 backdrop-blur-sm"
                 >
-                  <Trophy className="w-10 h-10 text-[#4db6ac]" />
+                  <Trophy className="w-8 h-8 md:w-10 md:h-10 text-[#4db6ac]" />
                 </motion.div>
-
-                <div className="space-y-1 text-right">
-                  <h1 className="text-3xl md:text-5xl font-black text-[#4db6ac] drop-shadow-sm">
+ 
+                <div className="space-y-1">
+                  <h1 className="text-3xl md:text-xl font-black text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
                     الفائز بالمرحلة الثالثة
                   </h1>
-                  <div className="py-3 px-8 bg-white rounded-2xl shadow-inner border-2 border-[#f48fb1]/20 inline-block">
-                    <span className="text-2xl md:text-4xl font-black text-[#f48fb1]">
-                      {stageWinners[3] || 'لا يوجد فائز'}
+                  <div className="py-1 px-4 inline-block">
+                    <span className="text-4xl md:text-4xl font-black text-[#f48fb1] drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)]">
+                      {stageWinners[3] === 'X' ? teamNames.X : stageWinners[3] === 'O' ? teamNames.O : 'لا يوجد فائز'}
                     </span>
                   </div>
                 </div>
               </div>
-
-              <div className="relative z-10 flex flex-col items-center gap-6 w-full justify-center mt-2">
+ 
+              {/* Reset button - Smaller, Pink, and Side-positioned */}
+              <div className="absolute bottom-10 right-10 z-10 flex flex-col items-center gap-6">
                 <button
                   onClick={() => {
                     localStorage.clear();
                     window.location.reload();
                   }}
-                  className="bg-[#4db6ac] text-white px-8 py-3 rounded-full text-xl font-black shadow-lg hover:bg-[#00897b] transition-all border-4 border-white flex items-center gap-2 whitespace-nowrap"
+                  className="bg-[#f48fb1]/80 hover:bg-[#f48fb1] text-white px-5 py-2 rounded-full text-sm md:text-base font-bold shadow-lg transition-all border-2 border-white/40 backdrop-blur-sm flex items-center gap-2 hover:scale-105 active:scale-95"
                 >
-                  <RotateCcw className="w-6 h-6" />
-                  لعبة جديدة
+                  <RotateCcw className="w-4 h-4" />
+                  <span>بداية جديدة</span>
                 </button>
               </div>
             </motion.div>
@@ -2001,6 +2005,35 @@ export default function App() {
         </Button>
       </div>
 
+      {/* View Results Button - Final Celebration Step */}
+      <AnimatePresence>
+        {winner && phase === 3 && !showFinalResults && (
+          <motion.div 
+            initial={{ scale: 0, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: 50 }}
+            transition={{ type: 'spring', bounce: 0.5, delay: 0.5 }}
+            className={cn(
+              "absolute z-[100] left-1/2 -translate-x-1/2",
+              isMobile ? "bottom-[12%]" : "bottom-[18%]"
+            )}
+          >
+            <motion.button 
+              onClick={() => {
+                triggerAudio(CLICK_SOUND);
+                setShowFinalResults(true);
+              }}
+              whileHover={{ scale: 1.1, rotate: [0, -2, 2, 0] }}
+              whileTap={{ scale: 0.9 }}
+              className="bg-gradient-to-r from-[#f48fb1] to-[#f06291] text-white px-8 py-3 rounded-full text-xl md:text-3xl font-black shadow-[0_8px_30px_rgba(244,143,177,0.5)] border-4 border-white flex items-center gap-3 group"
+            >
+              النتيجة
+              <Trophy className="w-8 h-8 md:w-10 md:h-10 text-white group-hover:rotate-12 transition-transform" />
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Back Button */}
       <button
         onClick={() => {
@@ -2126,7 +2159,7 @@ export default function App() {
             {stage3CurrentQuestion?.isPresenterOnly ? (
               <div className="grid grid-cols-2 gap-4 w-full">
                 <button
-                  disabled={stage3Timer <= 0}
+                  disabled={stage3Timer <= 0 || correctFeedback || wrongFeedback}
                   onClick={() => {
                     triggerAudio(CLICK_SOUND);
                     triggerAudio(CORRECT_SOUND);
@@ -2142,21 +2175,26 @@ export default function App() {
                     if (newPos === 19) {
                       setWinner(currentPlayer);
                       setStageWinners(prev => ({ ...prev, 3: currentPlayer }));
-                      setShowFinalResults(true);
+                      setShowStage3Question(false);
                       triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+                      confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                      });
                     }
                     
                     setCorrectFeedback(true);
                   }}
                   className={cn(
                     "py-2 px-2 text-sm font-black rounded-2xl text-white border-2 border-white shadow-lg transition-all",
-                    stage3Timer <= 0 ? "bg-gray-400 opacity-50 cursor-not-allowed" : "bg-[#4db6ac] hover:bg-[#00897b]"
+                    (stage3Timer <= 0 || correctFeedback || wrongFeedback) ? "bg-gray-400 opacity-50 cursor-not-allowed" : "bg-[#4db6ac] hover:bg-[#00897b]"
                   )}
                 >
                   إجابة صحيحة
                 </button>
                 <button
-                  disabled={stage3Timer <= 0}
+                  disabled={stage3Timer <= 0 || correctFeedback || wrongFeedback}
                   onClick={() => {
                     triggerAudio(CLICK_SOUND);
                     triggerAudio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
@@ -2165,7 +2203,7 @@ export default function App() {
                   }}
                   className={cn(
                     "py-2 px-2 text-sm font-black rounded-2xl text-white border-2 border-white shadow-lg transition-all",
-                    stage3Timer <= 0 ? "bg-gray-400 opacity-50 cursor-not-allowed" : "bg-[#f48fb1] hover:bg-[#f06292]"
+                    (stage3Timer <= 0 || correctFeedback || wrongFeedback) ? "bg-gray-400 opacity-50 cursor-not-allowed" : "bg-[#f48fb1] hover:bg-[#f06292]"
                   )}
                 >
                   إجابة خاطئة
@@ -2178,7 +2216,7 @@ export default function App() {
                 {stage3CurrentQuestion?.options.map((opt, i) => (
                   <button
                     key={i}
-                    disabled={stage3Timer <= 0}
+                    disabled={stage3Timer <= 0 || correctFeedback || wrongFeedback}
                     onClick={() => {
                       if (i === stage3CurrentQuestion.correctIndex) {
                         const newPos = Math.min(19, stage3Positions[currentPlayer] + 1);
@@ -2193,8 +2231,13 @@ export default function App() {
                         if (newPos === 19) {
                           setWinner(currentPlayer);
                           setStageWinners(prev => ({ ...prev, 3: currentPlayer }));
-                          setShowFinalResults(true);
+                          setShowStage3Question(false);
                           triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+                          confetti({
+                            particleCount: 150,
+                            spread: 70,
+                            origin: { y: 0.6 }
+                          });
                         }
                         
                         setCorrectFeedback(true);
@@ -2205,7 +2248,7 @@ export default function App() {
                     }}
                     className={cn(
                       "py-2 px-4 text-base font-black rounded-xl border-2 border-white shadow-md transition-all",
-                      stage3Timer <= 0 && "opacity-50 cursor-not-allowed",
+                      (stage3Timer <= 0 || correctFeedback || wrongFeedback) && "opacity-50 cursor-not-allowed",
                       currentPlayer === 'X' 
                         ? (showStage3Answer && i === stage3CurrentQuestion.correctIndex ? "bg-[#4db6ac] text-white" : "bg-white text-[#f48fb1] hover:bg-[#f48fb1] hover:text-white") 
                         : (showStage3Answer && i === stage3CurrentQuestion.correctIndex ? "bg-[#f48fb1] text-white" : "bg-white text-[#4db6ac] hover:bg-[#4db6ac] hover:text-white")
@@ -2363,8 +2406,13 @@ export default function App() {
                 if (newPos === 19) {
                   setWinner(currentPlayer);
                   setStageWinners(prev => ({ ...prev, 3: currentPlayer }));
-                  setShowFinalResults(true);
+                  setShowStage3Question(false);
                   triggerAudio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+                  confetti({
+                    particleCount: 150,
+                    spread: 40,
+                    origin: { y: 0.6 }
+                  });
                 }
                 setShowStreakBonus(false);
                 setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
