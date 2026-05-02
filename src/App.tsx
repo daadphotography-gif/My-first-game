@@ -2298,7 +2298,7 @@ export default function App() {
 
     {/* Image Zoom Modal */}
     <Dialog open={showImageZoom} onOpenChange={setShowImageZoom}>
-      <DialogContent className="max-w-[100vw] w-[100vw] sm:max-w-[100vw] h-[100vh] p-0 bg-black/40 backdrop-blur-md border-none shadow-none flex items-center justify-center z-[100]">
+      <DialogContent className="max-w-[100vw] w-[100vw] sm:max-w-[100vw] h-[100vh] p-0 bg-black/40 backdrop-blur-md border-none shadow-none flex items-center justify-center z-[5000]">
         {stage3CurrentQuestion?.imageUrl && (
           <div className="relative w-full h-full flex items-center justify-center p-8">
             <div className="relative max-w-full max-h-full">
